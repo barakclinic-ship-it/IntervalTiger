@@ -1407,6 +1407,18 @@
 
   function trackById(id){ return tracks.filter(function(t){ return t.id === id; })[0]; }
 
+  // iOS Safari has a long-standing IndexedDB bug: a Blob read back out of
+  // IndexedDB often loses its MIME type, and <audio> then silently refuses
+  // to play it (the play() promise just rejects) — the built-in cues still
+  // work because they're synthesized tones, not files. Rebuilding the Blob
+  // with the type we saved at upload time (t.type) fixes this.
+  function trackBlobForPlayback(t){
+    if(!t) return null;
+    if(t.blob && t.blob.type){ return t.blob; }
+    try{ return new Blob([t.blob], { type: t.type || 'audio/mpeg' }); }
+    catch(e){ return t.blob; }
+  }
+
   function renderSoundSelects(){
     soundSelects.forEach(function(sel){
       var phase = sel.getAttribute('data-phase');
@@ -1509,7 +1521,7 @@
       refreshLabels();
     }
 
-    previewAudio.src = URL.createObjectURL(t.blob);
+    previewAudio.src = URL.createObjectURL(trackBlobForPlayback(t));
     if(previewAudio.readyState >= 1 && previewAudio.duration){ loadMeta(); }
     else { previewAudio.addEventListener('loadedmetadata', loadMeta, { once:true }); }
 
@@ -1666,7 +1678,7 @@
     currentSegStart = seg ? t.segStart : null;
     currentSegEnd = seg ? t.segEnd : null;
     audioEl.loop = !!loop && !seg; // segments loop manually (see timeupdate above)
-    audioEl.src = URL.createObjectURL(t.blob);
+    audioEl.src = URL.createObjectURL(trackBlobForPlayback(t));
     if(seg){
       var seekTo = currentSegStart;
       var doSeek = function(){ try{ audioEl.currentTime = seekTo; }catch(e){} };
