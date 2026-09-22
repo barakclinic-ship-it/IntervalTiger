@@ -482,6 +482,51 @@
     justify-content: space-between;
     gap: 10px;
   }
+  .tm-header-actions{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .record-fab{
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .record-fab.recording{
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+    animation: recordPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes recordPulse{
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,92,92,.45); }
+    50% { box-shadow: 0 0 0 8px rgba(255,92,92,0); }
+  }
+  .record-status{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--danger);
+  }
+  .record-status .dot{
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--danger);
+    flex-shrink: 0;
+    animation: recordPulse 1.4s ease-in-out infinite;
+  }
   .add-fab{
     width: 50px;
     height: 50px;
@@ -599,6 +644,27 @@
     background: var(--accent);
     border-radius: 2px;
   }
+  /* Grip in the middle of the purple segment — dragging it slides the
+     whole segment left/right without changing its length. */
+  .seg-fill-handle{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 24px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    z-index: 3;
+  }
+  .seg-fill-handle:active{ cursor: grabbing; }
   .seg-slider input[type="range"]{
     -webkit-appearance: none;
     appearance: none;
@@ -670,7 +736,7 @@
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
       </button>
     </div>
-    <button class="iconbtn" id="settingsBtn" aria-label="הגדרות" title="הגדרות">⚙</button>
+    <button class="iconbtn" id="settingsBtn" aria-label="הגדרות" title="הגדרות"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 16.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </header>
 
   <div class="stage">
@@ -691,12 +757,12 @@
 
     <div class="controls">
       <div class="controls-row">
-        <button class="btn primary wide" id="startBtn">▶ התחל</button>
+        <button class="btn primary wide" id="startBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>התחל</span></button>
       </div>
       <div class="controls-row secondary">
-        <button class="btn ghost" id="resetBtn">↺ איפוס</button>
-        <button class="btn ghost" id="restartRoundBtn" disabled>⟲ מהתחלת הסבב</button>
-        <button class="btn ghost" id="skipBtn" disabled>דילוג ⏭</button>
+        <button class="btn ghost" id="resetBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg><span>איפוס</span></button>
+        <button class="btn ghost" id="restartRoundBtn" disabled><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg><span>מהתחלת הסבב</span></button>
+        <button class="btn ghost" id="skipBtn" disabled><span>דילוג</span><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M6 5l8 7-8 7V5z"/><rect x="16" y="5" width="2.4" height="14"/></svg></button>
       </div>
     </div>
   </div>
@@ -706,15 +772,21 @@
   <div class="settings-sheet">
     <div class="settings-title">
       <span>הגדרות אימון ומוזיקה</span>
-      <button class="iconbtn" id="closeSettingsBtn">✕</button>
+      <button class="iconbtn" id="closeSettingsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
     <div class="field-group">
       <div class="library-panel">
         <div class="tm-header">
           <label class="library-title">מאגר אישי · צלילים ושירים</label>
-          <button type="button" class="add-fab" id="addTrackBtn" aria-label="הוסף שיר או צליל" title="הוסף שיר או צליל">+</button>
+          <div class="tm-header-actions">
+            <button type="button" class="record-fab" id="recordTrackBtn" aria-label="הקלט צליל או שיר" title="הקלט צליל או שיר">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+            </button>
+            <button type="button" class="add-fab" id="addTrackBtn" aria-label="הוסף שיר או צליל" title="הוסף שיר או צליל">+</button>
+          </div>
         </div>
+        <div class="record-status" id="recordStatus" hidden></div>
         <div class="tracks-manage" id="tracksManage">
           <div class="tracks-empty" id="tracksEmpty">עדיין לא הועלו שירים</div>
         </div>
@@ -730,7 +802,7 @@
           <div class="field-label">
             <label class="phaseLabel" data-phase="prepare">היכון</label>
             <button type="button" class="edit-label-btn" data-phase="prepare" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
             </button>
           </div>
           <span class="hint">שניות לפני שהאימון מתחיל · 0 = דילוג על השלב</span>
@@ -755,7 +827,7 @@
           <div class="field-label">
             <label class="phaseLabel" data-phase="work">עבודה</label>
             <button type="button" class="edit-label-btn" data-phase="work" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
             </button>
           </div>
           <span class="hint">משך כל סבב עבודה (שניות) · 0 = דילוג על השלב</span>
@@ -780,7 +852,7 @@
           <div class="field-label">
             <label class="phaseLabel" data-phase="rest">מנוחה</label>
             <button type="button" class="edit-label-btn" data-phase="rest" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
             </button>
           </div>
           <span class="hint">מנוחה בין סבבים (שניות) · 0 = דילוג על השלב</span>
@@ -829,7 +901,7 @@
           <div class="field-label">
             <label class="phaseLabel" data-phase="setrest">מנוחה בין סטים</label>
             <button type="button" class="edit-label-btn" data-phase="setrest" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
             </button>
           </div>
           <span class="hint">שניות · 0 = דילוג על השלב</span>
@@ -849,7 +921,7 @@
     </div>
 
     <button class="btn primary btn-save" id="applySettingsBtn">שמור</button>
-    <button class="btn ghost reset-defaults-btn" id="resetDefaultsBtn">↺ אפס להגדרות ראשוניות</button>
+    <button class="btn ghost reset-defaults-btn" id="resetDefaultsBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg><span>אפס להגדרות ראשוניות</span></button>
   </div>
 </div>
 
@@ -857,7 +929,7 @@
   <div class="install-guide-card">
     <div class="install-guide-title">
       <span>התקנה על מסך הבית</span>
-      <button class="iconbtn" id="closeIosGuideBtn">✕</button>
+      <button class="iconbtn" id="closeIosGuideBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="install-guide-step">
       <span class="install-guide-num">1</span>
@@ -941,6 +1013,13 @@
   var roundsDisplay = document.getElementById('roundsDisplay');
   var nowPlaying = document.getElementById('nowPlaying');
   var startBtn = document.getElementById('startBtn');
+  // Icons for the four states of the main button, matching the outline/
+  // filled line-icon style used everywhere else in the app (never emoji).
+  var ICON_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  var ICON_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+  var ICON_RESTART = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg>';
+  var ICON_NOTE = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>';
+  function setStartBtnLabel(icon, text){ startBtn.innerHTML = icon + '<span>' + text + '</span>'; }
   var resetBtn = document.getElementById('resetBtn');
   var restartRoundBtn = document.getElementById('restartRoundBtn');
   var skipBtn = document.getElementById('skipBtn');
@@ -1207,7 +1286,7 @@
     roundsDisplay.textContent = 'כל הכבוד!';
     cuePhaseStart('done');
     vibrate([80,60,80,60,120]);
-    startBtn.textContent = '↻ אימון חדש';
+    setStartBtnLabel(ICON_RESTART, 'אימון חדש');
     startBtn.disabled = false;
     applyPhaseMusic('done');
     updateTransportButtons();
@@ -1269,7 +1348,7 @@
     if(ctx() && ctx().state === 'suspended'){ ctx().resume(); }
     if(!running){
       running = true;
-      startBtn.textContent = '⏸ השהה';
+      setStartBtnLabel(ICON_PAUSE, 'השהה');
       resetBtn.disabled = false;
       if(phaseEndAt === null){
         plan = buildPlan(settings);
@@ -1284,7 +1363,7 @@
       startTick();
     } else {
       running = false;
-      startBtn.textContent = '▶ המשך';
+      setStartBtnLabel(ICON_PLAY, 'המשך');
       phaseRemainingMs = Math.max(0, phaseEndAt - Date.now());
       stopTick();
       pauseMusic();
@@ -1299,7 +1378,7 @@
     phaseRemainingMs = null;
     stepIndex = 0;
     plan = buildPlan(settings);
-    startBtn.textContent = '▶ התחל';
+    setStartBtnLabel(ICON_PLAY, 'התחל');
     startBtn.disabled = false;
     stopMusic();
     clearFlood();
@@ -1412,16 +1491,26 @@
 
   function trackById(id){ return tracks.filter(function(t){ return t.id === id; })[0]; }
 
-  // iOS Safari has a long-standing IndexedDB bug: a Blob read back out of
-  // IndexedDB often loses its MIME type, and <audio> then silently refuses
-  // to play it (the play() promise just rejects) — the built-in cues still
-  // work because they're synthesized tones, not files. Rebuilding the Blob
-  // with the type we saved at upload time (t.type) fixes this.
+  // iOS Safari has a long-standing WebKit bug: a Blob/File object stored
+  // directly in IndexedDB often comes back unreadable (or with its MIME
+  // type stripped), so <audio> silently refuses to play it — the built-in
+  // cues still work because they're synthesized tones, not files. New
+  // uploads are stored as a raw ArrayBuffer instead (which survives the
+  // IndexedDB round-trip reliably on iOS), and a fresh Blob is built from
+  // it right before playback. Tracks uploaded before this fix (which only
+  // have the old `blob` field) fall back to that, best-effort.
   function trackBlobForPlayback(t){
     if(!t) return null;
+    if(t.data){
+      try{ return new Blob([t.data], { type: t.type || 'audio/mpeg' }); }
+      catch(e){}
+    }
     if(t.blob && t.blob.type){ return t.blob; }
-    try{ return new Blob([t.blob], { type: t.type || 'audio/mpeg' }); }
-    catch(e){ return t.blob; }
+    if(t.blob){
+      try{ return new Blob([t.blob], { type: t.type || 'audio/mpeg' }); }
+      catch(e){ return t.blob; }
+    }
+    return null;
   }
 
   function renderSoundSelects(){
@@ -1483,13 +1572,17 @@
       '<div class="seg-big">--:--</div>' +
       '<div class="seg-slider">' +
         '<div class="seg-track"></div>' +
-        '<div class="seg-fill"></div>' +
+        '<div class="seg-fill">' +
+          '<div class="seg-fill-handle" title="גרור כדי להזיז את המקטע">' +
+            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6v12M16 6v12"/></svg>' +
+          '</div>' +
+        '</div>' +
         '<input type="range" class="segStart" min="0" max="100" step="1" value="0">' +
         '<input type="range" class="segEnd" min="0" max="100" step="1" value="100">' +
       '</div>' +
       '<div class="seg-times"><span class="seg-time-start"></span><span class="seg-time-end"></span></div>' +
       '<div class="seg-actions">' +
-        '<button type="button" class="btn ghost seg-btn-preview">▶ ניגון מקטע</button>' +
+        '<button type="button" class="btn ghost seg-btn-preview"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>ניגון מקטע</span></button>' +
         '<button type="button" class="btn ghost seg-btn-clear">שיר מלא</button>' +
         '<button type="button" class="btn primary seg-btn-save">שמור מקטע</button>' +
       '</div>';
@@ -1543,6 +1636,41 @@
       refreshLabels();
     });
 
+    // Grip in the middle of the purple segment: dragging it slides the
+    // whole segment left/right, keeping its length fixed.
+    var fillHandle = wrap.querySelector('.seg-fill-handle');
+    var sliderEl = wrap.querySelector('.seg-slider');
+    var dragState = null;
+    fillHandle.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      stopPreview();
+      var max = duration || Number(endInput.max) || 1;
+      dragState = {
+        startX: e.clientX,
+        segStart: Number(startInput.value),
+        segEnd: Number(endInput.value),
+        sliderWidth: sliderEl.getBoundingClientRect().width || 1,
+        max: max
+      };
+      try{ fillHandle.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    fillHandle.addEventListener('pointermove', function(e){
+      if(!dragState) return;
+      var dxPx = e.clientX - dragState.startX;
+      var dxSec = (dxPx / dragState.sliderWidth) * dragState.max;
+      var segLen = dragState.segEnd - dragState.segStart;
+      var newStart = dragState.segStart + dxSec;
+      var newEnd = dragState.segEnd + dxSec;
+      if(newStart < 0){ newStart = 0; newEnd = segLen; }
+      if(newEnd > dragState.max){ newEnd = dragState.max; newStart = dragState.max - segLen; }
+      startInput.value = String(Math.round(newStart));
+      endInput.value = String(Math.round(newEnd));
+      refreshLabels();
+    });
+    function endFillDrag(){ dragState = null; }
+    fillHandle.addEventListener('pointerup', endFillDrag);
+    fillHandle.addEventListener('pointercancel', endFillDrag);
+
     wrap.querySelector('.seg-btn-preview').addEventListener('click', function(){
       stopPreview();
       var s = Number(startInput.value), e = Number(endInput.value);
@@ -1583,8 +1711,8 @@
       row.className = 'mtrack';
       row.innerHTML = '<span class="tname"></span>' +
         (seg ? '<span class="seg-badge"></span>' : '') +
-        '<button type="button" class="segbtn" title="הגדר מקטע">✂</button>' +
-        '<button class="del" title="מחק">✕</button>';
+        '<button type="button" class="segbtn" title="הגדר מקטע"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8.5 7.5 19 18M19 6 8.5 16.5"/></svg></button>' +
+        '<button class="del" title="מחק"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
       row.querySelector('.tname').textContent = t.name;
       if(seg) row.querySelector('.seg-badge').textContent = fmtTime(t.segEnd - t.segStart);
       row.querySelector('.segbtn').addEventListener('click', function(){ toggleSegmentEditor(t.id); });
@@ -1668,14 +1796,101 @@
     var chain = Promise.resolve();
     files.forEach(function(file){
       var name = file.name.replace(/\.[a-z0-9]+$/i, '');
-      chain = chain.then(function(){ return idbAdd({ name: name, type: file.type, blob: file }); });
+      // Store the raw bytes (ArrayBuffer), not the File/Blob object itself —
+      // on iOS Safari a Blob saved directly into IndexedDB can come back
+      // corrupted or unplayable, while an ArrayBuffer round-trips reliably.
+      chain = chain.then(function(){
+        return file.arrayBuffer().then(function(buf){
+          return idbAdd({ name: name, type: file.type, data: buf });
+        });
+      });
     });
     chain.then(function(){ return loadTracksFromDB(); });
+  });
+
+  // ---------- record a track directly from the microphone ----------
+  var recordTrackBtn = document.getElementById('recordTrackBtn');
+  var recordStatus = document.getElementById('recordStatus');
+  var mediaRecorder = null;
+  var recordedChunks = [];
+  var recordStream = null;
+  var recordStartAt = null;
+  var recordTimerHandle = null;
+
+  function pickRecorderMimeType(){
+    var candidates = [
+      'audio/mp4',                 // Safari / iOS
+      'audio/webm;codecs=opus',    // Chrome / Android
+      'audio/webm',
+      'audio/ogg;codecs=opus'
+    ];
+    for(var i = 0; i < candidates.length; i++){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidates[i])){
+        return candidates[i];
+      }
+    }
+    return '';
+  }
+
+  function updateRecordTimer(){
+    var secs = Math.floor((Date.now() - recordStartAt) / 1000);
+    recordStatus.innerHTML = '<span class="dot"></span><span>מקליט… ' + fmtTime(secs) + '</span>';
+  }
+
+  function startRecording(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){
+      alert('הדפדפן הזה לא תומך בהקלטה ישירה. אפשר להעלות קובץ שהוקלט באפליקציה אחרת.');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+      recordStream = stream;
+      recordedChunks = [];
+      var mimeType = pickRecorderMimeType();
+      try{
+        mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
+      }catch(e){
+        mediaRecorder = new MediaRecorder(stream);
+      }
+      mediaRecorder.ondataavailable = function(e){ if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = function(){
+        stream.getTracks().forEach(function(tr){ tr.stop(); });
+        recordStream = null;
+        if(recordTimerHandle){ clearInterval(recordTimerHandle); recordTimerHandle = null; }
+        recordStatus.hidden = true;
+        recordTrackBtn.classList.remove('recording');
+        if(!recordedChunks.length) return;
+        var blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || mimeType || 'audio/webm' });
+        var now = new Date();
+        var label = 'הקלטה ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        blob.arrayBuffer().then(function(buf){
+          return idbAdd({ name: label, type: blob.type, data: buf });
+        }).then(function(){ return loadTracksFromDB(); });
+      };
+      mediaRecorder.start();
+      recordStartAt = Date.now();
+      recordTrackBtn.classList.add('recording');
+      recordStatus.hidden = false;
+      updateRecordTimer();
+      recordTimerHandle = setInterval(updateRecordTimer, 500);
+    }).catch(function(){
+      alert('לא ניתן לגשת למיקרופון. יש לאשר גישה למיקרופון בהגדרות הדפדפן.');
+    });
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){ mediaRecorder.stop(); }
+  }
+
+  recordTrackBtn.addEventListener('click', function(){
+    if(mediaRecorder && mediaRecorder.state === 'recording'){ stopRecording(); }
+    else { startRecording(); }
   });
 
   function playForPhase(id, loop){
     var t = trackById(id);
     if(!t) return;
+    var srcBlob = trackBlobForPlayback(t);
+    if(!srcBlob) return;
     if(nowPlayingClearHandle){ clearTimeout(nowPlayingClearHandle); nowPlayingClearHandle = null; }
     currentBuiltinId = null;
     currentTrackId = id;
@@ -1683,14 +1898,14 @@
     currentSegStart = seg ? t.segStart : null;
     currentSegEnd = seg ? t.segEnd : null;
     audioEl.loop = !!loop && !seg; // segments loop manually (see timeupdate above)
-    audioEl.src = URL.createObjectURL(trackBlobForPlayback(t));
+    audioEl.src = URL.createObjectURL(srcBlob);
     if(seg){
       var seekTo = currentSegStart;
       var doSeek = function(){ try{ audioEl.currentTime = seekTo; }catch(e){} };
       if(audioEl.readyState >= 1){ doSeek(); } else { audioEl.addEventListener('loadedmetadata', doSeek, { once:true }); }
     }
     audioEl.play().catch(function(){});
-    nowPlaying.textContent = '♪ ' + t.name + (seg ? ' · מקטע ' + fmtTime(currentSegEnd - currentSegStart) : '');
+    nowPlaying.innerHTML = ICON_NOTE + '<span>' + t.name + (seg ? ' · מקטע ' + fmtTime(currentSegEnd - currentSegStart) : '') + '</span>';
     nowPlaying.className = 'now-playing on';
   }
   var nowPlayingClearHandle = null;
