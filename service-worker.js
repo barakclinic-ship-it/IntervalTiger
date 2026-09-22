@@ -1,7 +1,7 @@
 // Bump this version string every time TIGER's files change. It forces the
 // old cache to be thrown away on activate, so an update actually reaches
 // people who already installed the app to their home screen.
-const CACHE_NAME = 'tiger-cache-v9';
+const CACHE_NAME = 'tiger-cache-v10';
 const ASSETS = [
   './',
   './index.html',

@@ -2212,8 +2212,11 @@
       return;
     }
     if(!trackById(assigned)){ stopMusic(); return; }
-    if(currentTrackId !== assigned || !shouldLoopFull){
-      playForPhase(assigned, true);
+    // Play the track once per phase — even a short recording just plays
+    // through and then stays quiet for the rest of the phase, instead of
+    // looping back to its start to fill the remaining time.
+    if(currentTrackId !== assigned){
+      playForPhase(assigned, false);
     } else if(audioEl.paused){
       audioEl.play().catch(function(){});
     }
