@@ -17,6 +17,10 @@
 <meta name="apple-mobile-web-app-title" content="TIGER">
 <style>
   :root{
+    /* Hints the browser (scrollbars, form controls, the iOS overscroll/
+       bounce backdrop) to render dark, overriding the Claude Artifact
+       preview wrapper's own light color-scheme. */
+    color-scheme: dark;
     --bg: #0b0b0f;
     --surface: #16161d;
     --surface-2: #1f1f29;
@@ -458,6 +462,20 @@
     font-family: inherit;
   }
 
+  .library-panel{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .library-title{
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 800;
+  }
   .tm-header{
     display: flex;
     align-items: center;
@@ -465,9 +483,8 @@
     gap: 10px;
   }
   .add-fab{
-    position: relative;
-    width: 44px;
-    height: 44px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     border: none;
     background: var(--accent);
@@ -477,21 +494,10 @@
     justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
-  }
-  .add-fab-plus{
-    position: absolute;
-    bottom: -3px;
-    right: -3px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--accent);
-    font-size: 11px;
-    line-height: 13px;
-    text-align: center;
-    font-weight: 900;
-    border: 1.5px solid var(--accent);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0;
   }
   .tracks-manage{
     display: flex;
@@ -503,7 +509,7 @@
     align-items: center;
     gap: 8px;
     padding: 9px 10px;
-    background: var(--surface-2);
+    background: var(--surface);
     border-radius: 12px;
   }
   .tracks-manage .mtrack .tname{
@@ -546,7 +552,7 @@
   }
   .tracks-manage .mtrack .segbtn:hover{ background: var(--accent-dim); color: var(--accent); }
   .seg-editor{
-    background: var(--surface-2);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px;
@@ -704,17 +710,16 @@
     </div>
 
     <div class="field-group">
-      <div class="tm-header">
-        <label style="font-size:13px; color: var(--text-dim); font-weight:700;">שירים וצלילים שהעלית</label>
-        <button type="button" class="add-fab" id="addTrackBtn" aria-label="הוסף שיר או צליל" title="הוסף שיר או צליל">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
-          <span class="add-fab-plus">+</span>
-        </button>
+      <div class="library-panel">
+        <div class="tm-header">
+          <label class="library-title">מאגר אישי · צלילים ושירים</label>
+          <button type="button" class="add-fab" id="addTrackBtn" aria-label="הוסף שיר או צליל" title="הוסף שיר או צליל">+</button>
+        </div>
+        <div class="tracks-manage" id="tracksManage">
+          <div class="tracks-empty" id="tracksEmpty">עדיין לא הועלו שירים</div>
+        </div>
+        <div class="filehint">מהמכשיר או מגוגל דרייב (דרך בורר הקבצים של המערכת). mp3 / mp4 / wav / m4a מתנגנים ישירות בדפדפן. קובצי avi לרוב לא מתנגנים — עדיף להמיר קודם ל-mp3/mp4. אחרי ההעלאה, בחר את השיר מהרשימה בהגדרת הזמן הרצויה למטה. לכל צליל מובנה גם צבע משלו — הוא צובע את המסך כל עוד השלב שהוגדר לו פעיל.</div>
       </div>
-      <div class="tracks-manage" id="tracksManage">
-        <div class="tracks-empty" id="tracksEmpty">עדיין לא הועלו שירים</div>
-      </div>
-      <div class="filehint">מהמכשיר או מגוגל דרייב (דרך בורר הקבצים של המערכת). mp3 / mp4 / wav / m4a מתנגנים ישירות בדפדפן. קובצי avi לרוב לא מתנגנים — עדיף להמיר קודם ל-mp3/mp4. אחרי ההעלאה, בחר את השיר מהרשימה בהגדרת הזמן הרצויה למטה. לכל צליל מובנה גם צבע משלו — הוא צובע את המסך כל עוד השלב שהוגדר לו פעיל.</div>
     </div>
 
     <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.avi,.wav,.m4a,.mov,.mkv,.aac,.ogg,.flac" multiple hidden>
@@ -874,7 +879,7 @@
   "use strict";
 
   // ---------- persisted workout settings ----------
-  var DEFAULTS = { prepare: 10, work: 20, rest: 10, rounds: 8, sets: 1, setRest: 60 };
+  var DEFAULTS = { prepare: 5, work: 50, rest: 10, rounds: 99, sets: 1, setRest: 0 };
   var LIMITS = {
     prepare: [0, 60, 5], work: [0, 300, 5], rest: [0, 120, 5],
     rounds: [1, 99, 1], sets: [1, 10, 1], setRest: [0, 300, 10]
