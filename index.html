@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>TIGER</title>
+<meta name="description" content="TIGER - טיימר אינטרוולים לאימונים">
+<meta name="theme-color" content="#0b0b0f">
+<meta name="color-scheme" content="dark light">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TIGER">
+<style>
+  :root{
+    --bg: #0b0b0f;
+    --surface: #16161d;
+    --surface-2: #1f1f29;
+    --border: #2a2a36;
+    --text: #f2f2f6;
+    --text-dim: #8d8d99;
+    --work: #ff5c5c;
+    --work-dim: #4a1f22;
+    --rest: #35d0a0;
+    --rest-dim: #17352c;
+    --prepare: #ffc247;
+    --prepare-dim: #3a2e10;
+    --accent: #8c6bff;
+    --accent-dim: #241c40;
+    --danger: #ff5c5c;
+    --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg: #f4f3f8;
+      --surface: #ffffff;
+      --surface-2: #eeedf4;
+      --border: #e0dfe8;
+      --text: #17171d;
+      --text-dim: #6b6b76;
+      --work-dim: #ffe0e0;
+      --rest-dim: #d8f6ec;
+      --prepare-dim: #fff2d6;
+      --accent-dim: #eae4ff;
+      --shadow: 0 10px 30px rgba(30,20,60,0.08);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg: #f4f3f8;
+    --surface: #ffffff;
+    --surface-2: #eeedf4;
+    --border: #e0dfe8;
+    --text: #17171d;
+    --text-dim: #6b6b76;
+    --work-dim: #ffe0e0;
+    --rest-dim: #d8f6ec;
+    --prepare-dim: #fff2d6;
+    --accent-dim: #eae4ff;
+    --shadow: 0 10px 30px rgba(30,20,60,0.08);
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    direction: rtl;
+    min-height: 100%;
+    display: flex;
+    justify-content: center;
+    padding-inline: 16px;
+    padding-block: 20px 32px;
+  }
+  .app{
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .flood-bg{
+    position: fixed;
+    inset: 0;
+    background: var(--flood, transparent);
+    opacity: 0;
+    transition: opacity .5s ease, background-color .4s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .flood-bg.on{ opacity: .32; }
+  header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand .logo{
+    height: 34px;
+    width: auto;
+    display: block;
+  }
+  .share-btn{
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .share-btn:active{ transform: scale(0.94); }
+  .iconbtn{
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .iconbtn:hover{ background: var(--surface-2); }
+
+  .stage{
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px 20px 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    overflow: hidden;
+    transition: box-shadow .4s ease;
+  }
+  .stage::before{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--flood, transparent);
+    opacity: 0;
+    transition: opacity .4s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .stage.flooded::before{ opacity: .16; }
+  .stage.flooded{ box-shadow: 0 0 0 2px var(--flood), var(--shadow); }
+  .stage > *{ position: relative; z-index: 1; }
+  .phase-pill{
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 999px;
+    letter-spacing: .3px;
+    transition: background .25s, color .25s;
+  }
+  .phase-pill.prepare{ background: var(--prepare-dim); color: var(--prepare); }
+  .phase-pill.work{ background: var(--work-dim); color: var(--work); }
+  .phase-pill.rest{ background: var(--rest-dim); color: var(--rest); }
+  .phase-pill.setrest{ background: var(--accent-dim); color: var(--accent); }
+  .phase-pill.done{ background: var(--accent-dim); color: var(--accent); }
+  .phase-pill.idle{ background: var(--surface-2); color: var(--text-dim); }
+
+  .ring-wrap{
+    position: relative;
+    width: min(280px, 68vw);
+    height: min(280px, 68vw);
+  }
+  .ring-wrap svg{ width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-track{ fill: none; stroke: var(--surface-2); stroke-width: 10; }
+  .ring-progress{
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke .25s;
+  }
+  .ring-center{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .ring-center .time{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: 64px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+  }
+  .ring-center .rounds{
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .now-playing{
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 16px;
+  }
+  .now-playing.on{ color: var(--accent); }
+
+  .controls{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .controls-row{
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
+  .controls-row.secondary .btn{
+    font-size: 13px;
+    padding: 11px 6px;
+  }
+  .btn{
+    flex: 1;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform .1s, opacity .2s;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn.primary{ background: var(--accent); color: white; }
+  .btn.ghost{ background: var(--surface-2); color: var(--text); }
+  .btn.wide{ flex: 2; }
+  .btn:disabled{ opacity: .45; cursor: not-allowed; }
+
+  .settings-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 20;
+  }
+  .settings-sheet{
+    background: var(--surface);
+    border-radius: 22px 22px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 18px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .settings-title{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+  .field-group{
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .field-group:last-of-type{ border-bottom: none; }
+  .field{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .field label{ font-size: 14px; font-weight: 600; }
+  .field .hint{ font-size: 11.5px; color: var(--text-dim); display:block; margin-top: 2px; font-weight: 400; }
+  .field-label{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .edit-label-btn{
+    width: 20px; height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .edit-label-btn:hover{ color: var(--accent); }
+  .label-edit-input{
+    font-size: 14px;
+    font-weight: 700;
+    background: var(--surface-2);
+    border: 1px solid var(--accent);
+    border-radius: 7px;
+    padding: 3px 7px;
+    color: var(--text);
+    width: 96px;
+    font-family: inherit;
+  }
+  .stepper{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .stepper button{
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .stepper span{
+    min-width: 34px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 7px;
+    padding: 3px 2px;
+  }
+  .stepper span:hover{ background: var(--surface-2); }
+  .stepper input.stepper-input{
+    width: 46px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid var(--accent);
+    border-radius: 7px;
+    padding: 3px 2px;
+    background: var(--surface);
+    color: var(--text);
+  }
+  .color-row{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .color-row .clabel{ font-size: 12px; color: var(--text-dim); flex: 1; }
+  .phaseColor{
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .phaseColor::-webkit-color-swatch-wrapper{ padding: 3px; }
+  .phaseColor::-webkit-color-swatch{ border: none; border-radius: 6px; }
+  .phaseColor::-moz-color-swatch{ border: none; border-radius: 6px; }
+  .reset-defaults-btn{ margin-top: 4px; }
+  .sound-row{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sound-row .snote{
+    color: var(--accent);
+    opacity: .8;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+  .sound-row select{
+    flex: 1;
+    min-width: 0;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .tm-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .add-fab{
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .add-fab-plus{
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--accent);
+    font-size: 11px;
+    line-height: 13px;
+    text-align: center;
+    font-weight: 900;
+    border: 1.5px solid var(--accent);
+  }
+  .tracks-manage{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .tracks-manage .mtrack{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: var(--surface-2);
+    border-radius: 10px;
+  }
+  .tracks-manage .mtrack .tname{
+    flex: 1;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tracks-manage .mtrack .del{
+    width: 24px; height: 24px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .tracks-manage .mtrack .del:hover{ background: var(--work-dim); color: var(--work); }
+  .tracks-manage .mtrack .seg-badge{
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .tracks-manage .mtrack .segbtn{
+    width: 24px; height: 24px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .tracks-manage .mtrack .segbtn:hover{ background: var(--accent-dim); color: var(--accent); }
+  .seg-editor{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin: -2px 0 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .seg-biglabel{
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .seg-big{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: 36px;
+    text-align: center;
+    color: var(--accent);
+    letter-spacing: 1px;
+    line-height: 1.1;
+  }
+  /* Dual-handle range: only the segment between the two thumbs is
+     highlighted (not 0-to-thumb), and it always runs left-to-right
+     regardless of the page's RTL direction. */
+  .seg-slider{
+    direction: ltr;
+    position: relative;
+    height: 30px;
+    margin: 4px 0 2px;
+  }
+  .seg-track{
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 4px;
+    transform: translateY(-50%);
+    background: var(--border);
+    border-radius: 2px;
+  }
+  .seg-fill{
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    transform: translateY(-50%);
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .seg-slider input[type="range"]{
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+  .seg-slider input[type="range"]::-webkit-slider-runnable-track{ background: transparent; }
+  .seg-slider input[type="range"]::-moz-range-track{ background: transparent; border: none; }
+  .seg-slider input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    pointer-events: auto;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    cursor: pointer;
+    position: relative;
+  }
+  .seg-slider input[type="range"]::-moz-range-thumb{
+    pointer-events: auto;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    cursor: pointer;
+  }
+  .seg-times{
+    direction: ltr;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dim);
+  }
+  .seg-actions{ display: flex; gap: 8px; flex-wrap: wrap; }
+  .seg-actions .btn{ flex: 1; padding: 9px 6px; font-size: 12.5px; }
+  .tracks-empty{
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 4px 2px;
+  }
+  .filehint{
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .btn-save{ margin-top: 12px; }
+  [hidden]{ display: none !important; }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
+
+</head>
+<body>
+<div class="flood-bg" id="floodBg"></div>
+<div class="app">
+  <header>
+    <div class="brand">
+      <img class="logo" src="data:image/png;base64,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" alt="TIGER">
+      <button class="share-btn" id="shareBtn" aria-label="שתף" title="שתף את האפליקציה">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-3.9M8.6 13.4l6.8 3.9"/></svg>
+      </button>
+    </div>
+    <button class="iconbtn" id="settingsBtn" aria-label="הגדרות" title="הגדרות">⚙</button>
+  </header>
+
+  <div class="stage">
+    <div class="phase-pill idle" id="phasePill">מוכן להתחיל</div>
+
+    <div class="ring-wrap">
+      <svg viewBox="0 0 200 200">
+        <circle class="ring-track" cx="100" cy="100" r="88"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="88" stroke="#8c6bff"></circle>
+      </svg>
+      <div class="ring-center">
+        <div class="time" id="timeDisplay">00:00</div>
+        <div class="rounds" id="roundsDisplay">—</div>
+      </div>
+    </div>
+
+    <div class="now-playing" id="nowPlaying"></div>
+
+    <div class="controls">
+      <div class="controls-row">
+        <button class="btn primary wide" id="startBtn">▶ התחל</button>
+      </div>
+      <div class="controls-row secondary">
+        <button class="btn ghost" id="resetBtn">↺ איפוס</button>
+        <button class="btn ghost" id="restartRoundBtn" disabled>⟲ מהתחלת הסבב</button>
+        <button class="btn ghost" id="skipBtn" disabled>דילוג ⏭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="settings-overlay" id="settingsOverlay" hidden>
+  <div class="settings-sheet">
+    <div class="settings-title">
+      <span>הגדרות אימון ומוזיקה</span>
+      <button class="iconbtn" id="closeSettingsBtn">✕</button>
+    </div>
+
+    <div class="field-group">
+      <div class="tm-header">
+        <label style="font-size:13px; color: var(--text-dim); font-weight:700;">שירים וצלילים שהעלית</label>
+        <button type="button" class="add-fab" id="addTrackBtn" aria-label="הוסף שיר או צליל" title="הוסף שיר או צליל">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+          <span class="add-fab-plus">+</span>
+        </button>
+      </div>
+      <div class="tracks-manage" id="tracksManage">
+        <div class="tracks-empty" id="tracksEmpty">עדיין לא הועלו שירים</div>
+      </div>
+      <div class="filehint">מהמכשיר או מגוגל דרייב (דרך בורר הקבצים של המערכת). mp3 / mp4 / wav / m4a מתנגנים ישירות בדפדפן. קובצי avi לרוב לא מתנגנים — עדיף להמיר קודם ל-mp3/mp4. אחרי ההעלאה, בחר את השיר מהרשימה בהגדרת הזמן הרצויה למטה. לכל צליל מובנה גם צבע משלו — הוא צובע את המסך כל עוד השלב שהוגדר לו פעיל.</div>
+    </div>
+
+    <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.avi,.wav,.m4a,.mov,.mkv,.aac,.ogg,.flac" multiple hidden>
+
+    <div class="field-group">
+      <div class="field">
+        <div>
+          <div class="field-label">
+            <label class="phaseLabel" data-phase="prepare">היכון</label>
+            <button type="button" class="edit-label-btn" data-phase="prepare" title="שנה שם">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            </button>
+          </div>
+          <span class="hint">שניות לפני שהאימון מתחיל · 0 = דילוג על השלב</span>
+        </div>
+        <div class="stepper" data-key="prepare">
+          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
+        </div>
+      </div>
+      <div class="color-row">
+        <span class="clabel">צבע השלב</span>
+        <input type="color" class="phaseColor" data-phase="prepare">
+      </div>
+      <div class="sound-row">
+        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <select class="soundSelect" data-phase="prepare"></select>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field">
+        <div>
+          <div class="field-label">
+            <label class="phaseLabel" data-phase="work">עבודה</label>
+            <button type="button" class="edit-label-btn" data-phase="work" title="שנה שם">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            </button>
+          </div>
+          <span class="hint">משך כל סבב עבודה (שניות) · 0 = דילוג על השלב</span>
+        </div>
+        <div class="stepper" data-key="work">
+          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
+        </div>
+      </div>
+      <div class="color-row">
+        <span class="clabel">צבע השלב</span>
+        <input type="color" class="phaseColor" data-phase="work">
+      </div>
+      <div class="sound-row">
+        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v6M3 10v4M9 6v12M15 6v12M18 9v6M21 10v4M9 12h6"/></svg></span>
+        <select class="soundSelect" data-phase="work"></select>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field">
+        <div>
+          <div class="field-label">
+            <label class="phaseLabel" data-phase="rest">מנוחה</label>
+            <button type="button" class="edit-label-btn" data-phase="rest" title="שנה שם">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            </button>
+          </div>
+          <span class="hint">מנוחה בין סבבים (שניות) · 0 = דילוג על השלב</span>
+        </div>
+        <div class="stepper" data-key="rest">
+          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
+        </div>
+      </div>
+      <div class="color-row">
+        <span class="clabel">צבע השלב</span>
+        <input type="color" class="phaseColor" data-phase="rest">
+      </div>
+      <div class="sound-row">
+        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.8A8.5 8.5 0 1 1 11.2 4a7 7 0 0 0 8.8 8.8z"/></svg></span>
+        <select class="soundSelect" data-phase="rest"></select>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field">
+        <div>
+          <label>סבבים</label>
+          <span class="hint">מספר סבבי עבודה/מנוחה בכל סט</span>
+        </div>
+        <div class="stepper" data-key="rounds">
+          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field">
+        <div>
+          <label>סטים</label>
+          <span class="hint">כמה פעמים לחזור על כל הסבבים</span>
+        </div>
+        <div class="stepper" data-key="sets">
+          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field">
+        <div>
+          <div class="field-label">
+            <label class="phaseLabel" data-phase="setrest">מנוחה בין סטים</label>
+            <button type="button" class="edit-label-btn" data-phase="setrest" title="שנה שם">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            </button>
+          </div>
+          <span class="hint">שניות · 0 = דילוג על השלב</span>
+        </div>
+        <div class="stepper" data-key="setRest">
+          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
+        </div>
+      </div>
+      <div class="color-row">
+        <span class="clabel">צבע השלב</span>
+        <input type="color" class="phaseColor" data-phase="setrest">
+      </div>
+      <div class="sound-row">
+        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg></span>
+        <select class="soundSelect" data-phase="setrest"></select>
+      </div>
+    </div>
+
+    <button class="btn primary btn-save" id="applySettingsBtn">שמור</button>
+    <button class="btn ghost reset-defaults-btn" id="resetDefaultsBtn">↺ אפס להגדרות ראשוניות</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- persisted workout settings ----------
+  var DEFAULTS = { prepare: 10, work: 20, rest: 10, rounds: 8, sets: 1, setRest: 60 };
+  var LIMITS = {
+    prepare: [0, 60, 5], work: [0, 300, 5], rest: [0, 120, 5],
+    rounds: [1, 99, 1], sets: [1, 10, 1], setRest: [0, 300, 10]
+  };
+  var settings = Object.assign({}, DEFAULTS);
+  try{
+    var saved = localStorage.getItem('tabata_pulse_settings_v1');
+    if(saved) settings = Object.assign({}, DEFAULTS, JSON.parse(saved));
+  }catch(e){}
+  function saveSettings(){
+    try{ localStorage.setItem('tabata_pulse_settings_v1', JSON.stringify(settings)); }catch(e){}
+  }
+
+  // ---------- per-phase sound assignments ----------
+  var assignments = { prepare: null, work: null, rest: null, setrest: null };
+  try{
+    var savedA = JSON.parse(localStorage.getItem('tabata_pulse_music_assign_v2') || '{}');
+    ['prepare','work','rest','setrest'].forEach(function(k){
+      if(savedA[k] != null) assignments[k] = savedA[k];
+    });
+  }catch(e){}
+  function saveAssignments(){
+    try{ localStorage.setItem('tabata_pulse_music_assign_v2', JSON.stringify(assignments)); }catch(e){}
+  }
+
+  // ---------- build the workout plan as a flat list of phases ----------
+  function buildPlan(s){
+    var plan = [];
+    if(s.prepare > 0) plan.push({ phase:'prepare', dur: s.prepare });
+    for(var set=1; set<=s.sets; set++){
+      for(var r=1; r<=s.rounds; r++){
+        if(s.work > 0) plan.push({ phase:'work', dur: s.work, round:r, set:set });
+        var isLastRoundOfSet = (r === s.rounds);
+        if(!isLastRoundOfSet && s.rest > 0){
+          plan.push({ phase:'rest', dur: s.rest, round:r, set:set });
+        }
+      }
+      var isLastSet = (set === s.sets);
+      if(!isLastSet && s.setRest > 0){
+        plan.push({ phase:'setrest', dur: s.setRest, set:set });
+      }
+    }
+    plan.push({ phase:'done', dur: 0 });
+    return plan;
+  }
+
+  // ---------- timer state ----------
+  var plan = buildPlan(settings);
+  var stepIndex = 0;
+  var running = false;
+  var phaseEndAt = null;
+  var phaseRemainingMs = null;
+  var tickHandle = null;
+  var lastBeepSecond = null;
+
+  var phasePill = document.getElementById('phasePill');
+  var ringProgress = document.getElementById('ringProgress');
+  var timeDisplay = document.getElementById('timeDisplay');
+  var roundsDisplay = document.getElementById('roundsDisplay');
+  var nowPlaying = document.getElementById('nowPlaying');
+  var startBtn = document.getElementById('startBtn');
+  var resetBtn = document.getElementById('resetBtn');
+  var restartRoundBtn = document.getElementById('restartRoundBtn');
+  var skipBtn = document.getElementById('skipBtn');
+  var stageEl = document.querySelector('.stage');
+  var floodBg = document.getElementById('floodBg');
+  var activeFloodColor = null;
+
+  var RING_R = 88;
+  var RING_C = 2 * Math.PI * RING_R;
+  ringProgress.style.strokeDasharray = RING_C.toFixed(2);
+
+  var DEFAULT_LABELS = { prepare: 'היכון', work: 'עבודה', rest: 'מנוחה', setrest: 'מנוחה בין סטים' };
+  var FIXED_LABELS = { done: 'סיימת!', idle: 'מוכן להתחיל' };
+  var labels = Object.assign({}, DEFAULT_LABELS);
+  try{
+    var savedLabels = JSON.parse(localStorage.getItem('tabata_pulse_labels_v1') || '{}');
+    Object.keys(DEFAULT_LABELS).forEach(function(k){ if(savedLabels[k]) labels[k] = savedLabels[k]; });
+  }catch(e){}
+  function saveLabels(){ try{ localStorage.setItem('tabata_pulse_labels_v1', JSON.stringify(labels)); }catch(e){} }
+  function labelFor(phase){ return labels[phase] || FIXED_LABELS[phase] || phase; }
+
+  var DEFAULT_COLORS = { prepare: '#ffc247', work: '#ff5c5c', rest: '#35d0a0', setrest: '#8c6bff' };
+  var phaseColors = Object.assign({}, DEFAULT_COLORS);
+  try{
+    var savedColors = JSON.parse(localStorage.getItem('tabata_pulse_colors_v1') || '{}');
+    Object.keys(DEFAULT_COLORS).forEach(function(k){ if(savedColors[k]) phaseColors[k] = savedColors[k]; });
+  }catch(e){}
+  function saveColors(){ try{ localStorage.setItem('tabata_pulse_colors_v1', JSON.stringify(phaseColors)); }catch(e){} }
+
+  function fmtTime(totalSec){
+    totalSec = Math.max(0, Math.ceil(totalSec));
+    var m = Math.floor(totalSec/60);
+    var s = totalSec % 60;
+    return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  }
+  function currentStyle(){ return getComputedStyle(document.documentElement); }
+
+  function renderIdleFrame(){
+    var step = plan[stepIndex] || {phase:'idle', dur:0};
+    var label = stepIndex===0 && !running ? labelFor('idle') : labelFor(step.phase);
+    setPill(stepIndex===0 && !running ? 'idle' : step.phase, label);
+    timeDisplay.textContent = fmtTime(step.dur || 0);
+    setRingColor(stepIndex===0 && !running ? 'idle' : step.phase);
+    setRingFraction(0);
+    updateRoundsDisplay(step);
+    nowPlaying.textContent = '';
+    nowPlaying.className = 'now-playing';
+  }
+
+  function setPill(kind, label){
+    phasePill.className = 'phase-pill ' + kind;
+    phasePill.textContent = label;
+    var color = activeFloodColor || phaseColors[kind] || null;
+    if(color){
+      phasePill.style.background = color + '2a';
+      phasePill.style.color = color;
+    } else {
+      phasePill.style.background = '';
+      phasePill.style.color = '';
+    }
+  }
+  function setRingColor(phase){
+    var fallback = (phase === 'idle')
+      ? currentStyle().getPropertyValue('--text-dim').trim()
+      : currentStyle().getPropertyValue('--accent').trim();
+    var color = activeFloodColor || phaseColors[phase] || fallback;
+    ringProgress.setAttribute('stroke', color);
+  }
+  // A sound with a color "takes over the screen" while its phase runs.
+  function setFlood(color){
+    activeFloodColor = color;
+    document.documentElement.style.setProperty('--flood', color);
+    floodBg.classList.add('on');
+    stageEl.classList.add('flooded');
+  }
+  function clearFlood(){
+    activeFloodColor = null;
+    floodBg.classList.remove('on');
+    stageEl.classList.remove('flooded');
+  }
+  function applyFloodForPhase(phase){
+    var assigned = assignments[phase];
+    var color = null;
+    if(typeof assigned === 'string' && assigned.indexOf('builtin:') === 0){
+      var snd = builtinById(assigned.slice('builtin:'.length));
+      if(snd && snd.color) color = snd.color;
+    }
+    if(color) setFlood(color); else clearFlood();
+  }
+  function setRingFraction(frac){
+    var offset = RING_C * (1 - frac);
+    ringProgress.style.strokeDashoffset = offset.toFixed(2);
+  }
+  function updateRoundsDisplay(step){
+    if(step.phase === 'work' || step.phase === 'rest'){
+      var txt = 'סבב ' + step.round + ' מתוך ' + settings.rounds;
+      if(settings.sets > 1) txt += '  ·  סט ' + step.set + '/' + settings.sets;
+      roundsDisplay.textContent = txt;
+    } else if(step.phase === 'setrest'){
+      roundsDisplay.textContent = 'לפני סט ' + (step.set+1) + '/' + settings.sets;
+    } else if(step.phase === 'done'){
+      roundsDisplay.textContent = 'כל הכבוד!';
+    } else {
+      roundsDisplay.textContent = settings.rounds + ' סבבים · ' + settings.work + '/' + settings.rest + ' שנ\'';
+    }
+  }
+
+  // ---------- beep cues (synthesized, boosted for loudness) ----------
+  var actx = null;
+  var masterCompressor = null;
+  function ctx(){
+    if(!actx){ try{ actx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} }
+    return actx;
+  }
+  // A limiter so the louder beeps below don't clip / distort.
+  function comp(c){
+    if(!masterCompressor){
+      masterCompressor = c.createDynamicsCompressor();
+      try{
+        masterCompressor.threshold.setValueAtTime(-14, c.currentTime);
+        masterCompressor.knee.setValueAtTime(8, c.currentTime);
+        masterCompressor.ratio.setValueAtTime(10, c.currentTime);
+        masterCompressor.attack.setValueAtTime(0.002, c.currentTime);
+        masterCompressor.release.setValueAtTime(0.15, c.currentTime);
+      }catch(e){}
+      masterCompressor.connect(c.destination);
+    }
+    return masterCompressor;
+  }
+  // Main tone plus a square-wave harmonic layer on top — much louder /
+  // more piercing than a single sine at the same gain.
+  function beep(freq, durMs, vol, wave){
+    var c = ctx();
+    if(!c) return;
+    var t0 = c.currentTime;
+    var dest = comp(c);
+    var osc = c.createOscillator();
+    var gain = c.createGain();
+    osc.type = wave || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(vol, t0 + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
+    osc.connect(gain).connect(dest);
+    osc.start(t0);
+    osc.stop(t0 + durMs/1000 + 0.03);
+
+    var osc2 = c.createOscillator();
+    var gain2 = c.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(freq*2, t0);
+    gain2.gain.setValueAtTime(0, t0);
+    gain2.gain.linearRampToValueAtTime(vol*0.4, t0 + 0.008);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
+    osc2.connect(gain2).connect(dest);
+    osc2.start(t0);
+    osc2.stop(t0 + durMs/1000 + 0.03);
+  }
+  function cueTick(){ beep(1000, 110, 0.6); }
+  function cuePhaseStart(phase){
+    if(phase === 'work') { beep(1200, 230, 0.95); }
+    else if(phase === 'rest') { beep(700, 280, 0.85); }
+    else if(phase === 'setrest') { beep(520, 300, 0.85); }
+    else if(phase === 'done') { beep(700,150,0.85); setTimeout(function(){beep(850,150,0.85);},160); setTimeout(function(){beep(1050,300,0.9);},320); }
+  }
+  function vibrate(pattern){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
+
+  // ---------- built-in loopable alert sounds (no upload needed) ----------
+  function bellTone(){
+    var c = ctx(); if(!c) return;
+    var t0 = c.currentTime, dest = comp(c);
+    [1, 2, 2.4, 3.8].forEach(function(mult, i){
+      var osc = c.createOscillator(), g = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(660*mult, t0);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(0.7/(i+1), t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.9);
+      osc.connect(g).connect(dest);
+      osc.start(t0); osc.stop(t0 + 0.95);
+    });
+  }
+  function whistleTone(){
+    var c = ctx(); if(!c) return;
+    var t0 = c.currentTime, dest = comp(c);
+    var osc = c.createOscillator(), g = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1800, t0);
+    osc.frequency.linearRampToValueAtTime(2600, t0 + 0.25);
+    osc.frequency.linearRampToValueAtTime(1800, t0 + 0.5);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.85, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.55);
+    osc.connect(g).connect(dest);
+    osc.start(t0); osc.stop(t0 + 0.6);
+  }
+  function buzzTone(){
+    var c = ctx(); if(!c) return;
+    var t0 = c.currentTime, dest = comp(c);
+    var osc = c.createOscillator(), g = c.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, t0);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.9, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+    osc.connect(g).connect(dest);
+    osc.start(t0); osc.stop(t0 + 0.4);
+  }
+  function sirenTone(){
+    var c = ctx(); if(!c) return;
+    var t0 = c.currentTime, dest = comp(c);
+    var osc = c.createOscillator(), g = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(500, t0);
+    osc.frequency.linearRampToValueAtTime(1000, t0 + 0.4);
+    osc.frequency.linearRampToValueAtTime(500, t0 + 0.8);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.8, t0 + 0.02);
+    g.gain.setValueAtTime(0.8, t0 + 0.75);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.85);
+    osc.connect(g).connect(dest);
+    osc.start(t0); osc.stop(t0 + 0.9);
+  }
+  function doubleBeepTone(){ beep(900, 90, 0.9); setTimeout(function(){ beep(1250, 110, 0.9); }, 110); }
+  function classicBeepTone(){ beep(1050, 150, 0.95); }
+
+  // Each built-in sound also carries a color: while its phase is active,
+  // that color takes over the screen (see applyFloodForPhase below).
+  var BUILTIN_SOUNDS = [
+    { id:'beep',    name:'ביפ קלאסי', color:'#34d399', play: classicBeepTone },
+    { id:'double',  name:'ביפ כפול',  color:'#2dd4bf', play: doubleBeepTone },
+    { id:'bell',    name:'פעמון',     color:'#a78bfa', play: bellTone },
+    { id:'whistle', name:'שריקה',     color:'#fbbf24', play: whistleTone },
+    { id:'buzzer',  name:'באזר',      color:'#fb7185', play: buzzTone },
+    { id:'siren',   name:'סירנה',     color:'#f472b6', play: sirenTone }
+  ];
+  function builtinById(id){ return BUILTIN_SOUNDS.filter(function(s){ return s.id === id; })[0]; }
+
+  // ---------- transport ----------
+  function goToStep(idx, autoStartTimer){
+    stepIndex = idx;
+    var step = plan[stepIndex];
+    if(!step){ finishWorkout(); return; }
+    if(step.phase === 'done'){ finishWorkout(); return; }
+    applyFloodForPhase(step.phase);
+    setPill(step.phase, labelFor(step.phase));
+    setRingColor(step.phase);
+    updateRoundsDisplay(step);
+    cuePhaseStart(step.phase);
+    vibrate(step.phase === 'work' ? [40] : [15,60,15]);
+    lastBeepSecond = null;
+    if(autoStartTimer){ phaseEndAt = Date.now() + step.dur*1000; }
+    applyPhaseMusic(step.phase);
+  }
+
+  function finishWorkout(){
+    running = false;
+    stopTick();
+    clearFlood();
+    setPill('done', labelFor("done"));
+    setRingColor('done');
+    setRingFraction(1);
+    timeDisplay.textContent = '00:00';
+    roundsDisplay.textContent = 'כל הכבוד!';
+    cuePhaseStart('done');
+    vibrate([80,60,80,60,120]);
+    startBtn.textContent = '↻ אימון חדש';
+    startBtn.disabled = false;
+    applyPhaseMusic('done');
+    updateTransportButtons();
+  }
+
+  // Enabled once a workout is running or paused mid-way; disabled while idle or finished.
+  function updateTransportButtons(){
+    var active = running || phaseRemainingMs !== null;
+    restartRoundBtn.disabled = !active;
+    skipBtn.disabled = !active;
+  }
+
+  // Jump to a given step while preserving whether the workout is currently
+  // running or paused (used by both "restart round" and "skip").
+  function goToStepKeepingRunState(newIdx){
+    if(!running && phaseRemainingMs === null) return; // not started yet
+    var wasRunning = running;
+    goToStep(newIdx, true);
+    var step = plan[stepIndex];
+    if(!step || step.phase === 'done'){ updateTransportButtons(); return; }
+    if(wasRunning){
+      startTick();
+    } else {
+      phaseRemainingMs = Math.max(0, phaseEndAt - Date.now());
+      phaseEndAt = null;
+      stopTick();
+      pauseMusic();
+      timeDisplay.textContent = fmtTime(phaseRemainingMs/1000);
+      setRingFraction(0);
+    }
+    updateTransportButtons();
+  }
+  function restartRound(){ goToStepKeepingRunState(stepIndex); }
+  function skipPhase(){ goToStepKeepingRunState(stepIndex+1); }
+
+  function tick(){
+    var step = plan[stepIndex];
+    if(!step || phaseEndAt === null) return;
+    var remainingMs = phaseEndAt - Date.now();
+    var remainingSec = remainingMs/1000;
+    if(remainingMs <= 0){
+      goToStep(stepIndex+1, true);
+      tick();
+      return;
+    }
+    var frac = 1 - (remainingMs / (step.dur*1000));
+    setRingFraction(Math.min(1, Math.max(0, frac)));
+    timeDisplay.textContent = fmtTime(remainingSec);
+    var wholeSec = Math.ceil(remainingSec);
+    if(wholeSec <= 3 && wholeSec >= 1 && wholeSec !== lastBeepSecond){
+      lastBeepSecond = wholeSec;
+      cueTick();
+    }
+  }
+  function startTick(){ stopTick(); tickHandle = setInterval(tick, 100); }
+  function stopTick(){ if(tickHandle){ clearInterval(tickHandle); tickHandle = null; } }
+
+  function startOrResume(){
+    if(ctx() && ctx().state === 'suspended'){ ctx().resume(); }
+    if(!running){
+      running = true;
+      startBtn.textContent = '⏸ השהה';
+      resetBtn.disabled = false;
+      if(phaseEndAt === null){
+        plan = buildPlan(settings);
+        stepIndex = 0;
+        goToStep(0, true);
+      } else if(phaseRemainingMs !== null){
+        phaseEndAt = Date.now() + phaseRemainingMs;
+        phaseRemainingMs = null;
+        applyFloodForPhase(plan[stepIndex].phase);
+        applyPhaseMusic(plan[stepIndex].phase);
+      }
+      startTick();
+    } else {
+      running = false;
+      startBtn.textContent = '▶ המשך';
+      phaseRemainingMs = Math.max(0, phaseEndAt - Date.now());
+      stopTick();
+      pauseMusic();
+    }
+    updateTransportButtons();
+  }
+
+  function resetWorkout(){
+    running = false;
+    stopTick();
+    phaseEndAt = null;
+    phaseRemainingMs = null;
+    stepIndex = 0;
+    plan = buildPlan(settings);
+    startBtn.textContent = '▶ התחל';
+    startBtn.disabled = false;
+    stopMusic();
+    clearFlood();
+    renderIdleFrame();
+    updateTransportButtons();
+  }
+
+  startBtn.addEventListener('click', startOrResume);
+  resetBtn.addEventListener('click', resetWorkout);
+  restartRoundBtn.addEventListener('click', restartRound);
+  skipBtn.addEventListener('click', skipPhase);
+  updateTransportButtons();
+
+  // ================= MUSIC (IndexedDB-backed, per this browser) =================
+  var DB_NAME = 'tabata_pulse_music';
+  var STORE = 'tracks';
+  var dbPromise = new Promise(function(resolve, reject){
+    try{
+      var req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = function(){
+        var db = req.result;
+        if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath:'id', autoIncrement:true });
+      };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    }catch(e){ reject(e); }
+  });
+  function idbAll(){
+    return dbPromise.then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(STORE, 'readonly');
+        var req = tx.objectStore(STORE).getAll();
+        req.onsuccess = function(){ resolve(req.result || []); };
+        req.onerror = function(){ reject(req.error); };
+      });
+    }).catch(function(){ return []; });
+  }
+  function idbAdd(track){
+    return dbPromise.then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(STORE, 'readwrite');
+        var req = tx.objectStore(STORE).add(track);
+        tx.oncomplete = function(){ resolve(req.result); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function idbDelete(id){
+    return dbPromise.then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).delete(id);
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  // Merge `patch` fields (e.g. segStart/segEnd) into an existing track record.
+  function idbUpdate(id, patch){
+    return dbPromise.then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(STORE, 'readwrite');
+        var store = tx.objectStore(STORE);
+        var getReq = store.get(id);
+        getReq.onsuccess = function(){
+          var rec = getReq.result;
+          if(!rec){ resolve(); return; }
+          Object.assign(rec, patch);
+          var putReq = store.put(rec);
+          putReq.onsuccess = function(){ resolve(); };
+          putReq.onerror = function(){ reject(putReq.error); };
+        };
+        getReq.onerror = function(){ reject(getReq.error); };
+      });
+    });
+  }
+
+  var tracks = [];
+  var currentTrackId = null;
+  var currentBuiltinId = null;
+  var currentSegStart = null;
+  var currentSegEnd = null;
+  var audioEl = new Audio();
+  audioEl.preload = 'metadata';
+  // A segment plays once and stops at its end — it does not loop back to
+  // its start, even if the phase it's assigned to runs longer than it.
+  audioEl.addEventListener('timeupdate', function(){
+    if(currentSegEnd != null && !audioEl.paused && audioEl.currentTime >= currentSegEnd - 0.08){
+      audioEl.pause();
+      nowPlaying.className = 'now-playing';
+    }
+  });
+
+  // A second, independent audio element for previewing a segment while
+  // editing it, so it never disturbs whatever is currently playing live.
+  var previewAudio = new Audio();
+  previewAudio.preload = 'metadata';
+  var previewStopAt = null;
+  function stopPreview(){ previewAudio.pause(); previewStopAt = null; }
+  previewAudio.addEventListener('timeupdate', function(){
+    if(previewStopAt != null && previewAudio.currentTime >= previewStopAt){ stopPreview(); }
+  });
+  var openSegmentEditorId = null;
+
+  var soundSelects = Array.prototype.slice.call(document.querySelectorAll('.soundSelect'));
+  var tracksManage = document.getElementById('tracksManage');
+  var tracksEmpty = document.getElementById('tracksEmpty');
+  var fileInput = document.getElementById('fileInput');
+  var addTrackBtn = document.getElementById('addTrackBtn');
+
+  function trackById(id){ return tracks.filter(function(t){ return t.id === id; })[0]; }
+
+  function renderSoundSelects(){
+    soundSelects.forEach(function(sel){
+      var phase = sel.getAttribute('data-phase');
+      var current = assignments[phase];
+      sel.innerHTML = '';
+      var optNone = document.createElement('option');
+      optNone.value = '';
+      optNone.textContent = 'ללא צליל נוסף (רק ביפים קצרים)';
+      sel.appendChild(optNone);
+
+      var ogBuiltin = document.createElement('optgroup');
+      ogBuiltin.label = '— צלילים מובנים —';
+      BUILTIN_SOUNDS.forEach(function(s){
+        var opt = document.createElement('option');
+        opt.value = 'builtin:' + s.id;
+        opt.textContent = s.name;
+        ogBuiltin.appendChild(opt);
+      });
+      sel.appendChild(ogBuiltin);
+
+      if(tracks.length){
+        var ogTracks = document.createElement('optgroup');
+        ogTracks.label = '— השירים שהעלית —';
+        tracks.forEach(function(t){
+          var opt = document.createElement('option');
+          opt.value = String(t.id);
+          opt.textContent = t.name;
+          ogTracks.appendChild(opt);
+        });
+        sel.appendChild(ogTracks);
+      }
+
+      var val = '';
+      if(current != null){
+        if(typeof current === 'string') val = current;
+        else if(tracks.some(function(t){ return t.id === current; })) val = String(current);
+      }
+      sel.value = val;
+    });
+  }
+
+  function hasSegment(t){ return t.segStart != null && t.segEnd != null && t.segEnd > t.segStart; }
+
+  function toggleSegmentEditor(id){
+    openSegmentEditorId = (openSegmentEditorId === id) ? null : id;
+    stopPreview();
+    renderTracksManage();
+  }
+
+  // Inline editor: pick a start/end within the track and show the resulting
+  // segment length prominently, live, as the sliders move.
+  function buildSegmentEditor(t){
+    var wrap = document.createElement('div');
+    wrap.className = 'seg-editor';
+    wrap.innerHTML =
+      '<div class="seg-biglabel">אורך המקטע (החלק שיישמע)</div>' +
+      '<div class="seg-big">--:--</div>' +
+      '<div class="seg-slider">' +
+        '<div class="seg-track"></div>' +
+        '<div class="seg-fill"></div>' +
+        '<input type="range" class="segStart" min="0" max="100" step="1" value="0">' +
+        '<input type="range" class="segEnd" min="0" max="100" step="1" value="100">' +
+      '</div>' +
+      '<div class="seg-times"><span class="seg-time-start"></span><span class="seg-time-end"></span></div>' +
+      '<div class="seg-actions">' +
+        '<button type="button" class="btn ghost seg-btn-preview">▶ ניגון מקטע</button>' +
+        '<button type="button" class="btn ghost seg-btn-clear">שיר מלא</button>' +
+        '<button type="button" class="btn primary seg-btn-save">שמור מקטע</button>' +
+      '</div>';
+
+    var bigEl = wrap.querySelector('.seg-big');
+    var startInput = wrap.querySelector('.segStart');
+    var endInput = wrap.querySelector('.segEnd');
+    var fillEl = wrap.querySelector('.seg-fill');
+    var startLabel = wrap.querySelector('.seg-time-start');
+    var endLabel = wrap.querySelector('.seg-time-end');
+    var duration = 0;
+
+    function refreshLabels(){
+      var s = Number(startInput.value), e = Number(endInput.value);
+      startLabel.textContent = fmtTime(s);
+      endLabel.textContent = fmtTime(e);
+      bigEl.textContent = fmtTime(Math.max(0, e - s));
+      // Highlight only the audible span between the two handles.
+      var max = duration || Number(endInput.max) || 1;
+      var leftPct = Math.max(0, Math.min(100, (s / max) * 100));
+      var rightPct = Math.max(0, Math.min(100, (e / max) * 100));
+      fillEl.style.left = leftPct + '%';
+      fillEl.style.width = Math.max(0, rightPct - leftPct) + '%';
+    }
+
+    function loadMeta(){
+      duration = previewAudio.duration || 0;
+      startInput.max = String(Math.floor(duration));
+      endInput.max = String(Math.floor(duration));
+      var initStart = t.segStart != null ? t.segStart : 0;
+      var initEnd = t.segEnd != null ? t.segEnd : Math.floor(duration);
+      startInput.value = String(initStart);
+      endInput.value = String(initEnd);
+      refreshLabels();
+    }
+
+    previewAudio.src = URL.createObjectURL(t.blob);
+    if(previewAudio.readyState >= 1 && previewAudio.duration){ loadMeta(); }
+    else { previewAudio.addEventListener('loadedmetadata', loadMeta, { once:true }); }
+
+    startInput.addEventListener('input', function(){
+      if(Number(startInput.value) >= Number(endInput.value)){
+        startInput.value = String(Math.max(0, Number(endInput.value) - 1));
+      }
+      refreshLabels();
+    });
+    endInput.addEventListener('input', function(){
+      if(Number(endInput.value) <= Number(startInput.value)){
+        endInput.value = String(Math.min(duration, Number(startInput.value) + 1));
+      }
+      refreshLabels();
+    });
+
+    wrap.querySelector('.seg-btn-preview').addEventListener('click', function(){
+      stopPreview();
+      var s = Number(startInput.value), e = Number(endInput.value);
+      try{ previewAudio.currentTime = s; }catch(err){}
+      previewStopAt = e;
+      previewAudio.play().catch(function(){});
+    });
+    wrap.querySelector('.seg-btn-clear').addEventListener('click', function(){
+      startInput.value = '0';
+      endInput.value = String(Math.floor(duration));
+      refreshLabels();
+    });
+    wrap.querySelector('.seg-btn-save').addEventListener('click', function(){
+      stopPreview();
+      var s = Number(startInput.value), e = Number(endInput.value);
+      var full = (s <= 0 && e >= Math.floor(duration));
+      var patch = full ? { segStart: null, segEnd: null } : { segStart: s, segEnd: e };
+      idbUpdate(t.id, patch).then(function(){
+        openSegmentEditorId = null;
+        if(currentTrackId === t.id){
+          var step = plan[stepIndex];
+          if(step) applyPhaseMusic(step.phase);
+        }
+        loadTracksFromDB();
+      });
+    });
+
+    return wrap;
+  }
+
+  function renderTracksManage(){
+    tracksManage.querySelectorAll('.mtrack, .seg-editor').forEach(function(n){ n.remove(); });
+    if(tracks.length === 0){ tracksEmpty.hidden = false; return; }
+    tracksEmpty.hidden = true;
+    tracks.forEach(function(t){
+      var seg = hasSegment(t);
+      var row = document.createElement('div');
+      row.className = 'mtrack';
+      row.innerHTML = '<span class="tname"></span>' +
+        (seg ? '<span class="seg-badge"></span>' : '') +
+        '<button type="button" class="segbtn" title="הגדר מקטע">✂</button>' +
+        '<button class="del" title="מחק">✕</button>';
+      row.querySelector('.tname').textContent = t.name;
+      if(seg) row.querySelector('.seg-badge').textContent = fmtTime(t.segEnd - t.segStart);
+      row.querySelector('.segbtn').addEventListener('click', function(){ toggleSegmentEditor(t.id); });
+      row.querySelector('.del').addEventListener('click', function(){
+        idbDelete(t.id).then(function(){
+          ['prepare','work','rest','setrest'].forEach(function(k){
+            if(assignments[k] === t.id) assignments[k] = null;
+          });
+          saveAssignments();
+          if(currentTrackId === t.id) stopMusic();
+          if(openSegmentEditorId === t.id) openSegmentEditorId = null;
+          loadTracksFromDB();
+        });
+      });
+      tracksManage.appendChild(row);
+      if(openSegmentEditorId === t.id){
+        tracksManage.appendChild(buildSegmentEditor(t));
+      }
+    });
+  }
+
+  function loadTracksFromDB(){
+    return idbAll().then(function(rows){
+      tracks = rows;
+      renderSoundSelects();
+      renderTracksManage();
+    });
+  }
+  loadTracksFromDB();
+
+  soundSelects.forEach(function(sel){
+    sel.addEventListener('change', function(){
+      var phase = sel.getAttribute('data-phase');
+      if(sel.value === ''){ assignments[phase] = null; }
+      else if(sel.value.indexOf('builtin:') === 0){ assignments[phase] = sel.value; }
+      else { assignments[phase] = Number(sel.value); }
+      saveAssignments();
+      // live-update if this phase is currently playing
+      var step = plan[stepIndex];
+      if(running && step && step.phase === phase){
+        applyFloodForPhase(phase);
+        applyPhaseMusic(phase);
+      }
+    });
+  });
+
+  // Direct button → direct click on the (hidden) file input. Kept as a
+  // simple, single user gesture so the OS/Drive file picker reliably opens
+  // (routing this through a <select>'s change event was unreliable).
+  addTrackBtn.addEventListener('click', function(){ fileInput.click(); });
+
+  fileInput.addEventListener('change', function(){
+    var files = Array.prototype.slice.call(fileInput.files || []);
+    fileInput.value = '';
+    if(!files.length) return;
+    var chain = Promise.resolve();
+    files.forEach(function(file){
+      var name = file.name.replace(/\.[a-z0-9]+$/i, '');
+      chain = chain.then(function(){ return idbAdd({ name: name, type: file.type, blob: file }); });
+    });
+    chain.then(function(){ return loadTracksFromDB(); });
+  });
+
+  function playForPhase(id, loop){
+    var t = trackById(id);
+    if(!t) return;
+    if(nowPlayingClearHandle){ clearTimeout(nowPlayingClearHandle); nowPlayingClearHandle = null; }
+    currentBuiltinId = null;
+    currentTrackId = id;
+    var seg = hasSegment(t);
+    currentSegStart = seg ? t.segStart : null;
+    currentSegEnd = seg ? t.segEnd : null;
+    audioEl.loop = !!loop && !seg; // segments loop manually (see timeupdate above)
+    audioEl.src = URL.createObjectURL(t.blob);
+    if(seg){
+      var seekTo = currentSegStart;
+      var doSeek = function(){ try{ audioEl.currentTime = seekTo; }catch(e){} };
+      if(audioEl.readyState >= 1){ doSeek(); } else { audioEl.addEventListener('loadedmetadata', doSeek, { once:true }); }
+    }
+    audioEl.play().catch(function(){});
+    nowPlaying.textContent = '♪ ' + t.name + (seg ? ' · מקטע ' + fmtTime(currentSegEnd - currentSegStart) : '');
+    nowPlaying.className = 'now-playing on';
+  }
+  var nowPlayingClearHandle = null;
+  // Built-in sounds are a single cue, not a loop: play it once when the
+  // phase starts (and once more on resume), then clear the indicator.
+  function playBuiltinOnce(soundId){
+    var snd = builtinById(soundId);
+    if(!snd) return;
+    audioEl.pause();
+    audioEl.removeAttribute('src');
+    currentTrackId = null;
+    currentSegStart = null;
+    currentSegEnd = null;
+    snd.play();
+    nowPlaying.textContent = snd.name;
+    nowPlaying.className = 'now-playing on';
+    if(nowPlayingClearHandle) clearTimeout(nowPlayingClearHandle);
+    nowPlayingClearHandle = setTimeout(function(){
+      nowPlaying.textContent = '';
+      nowPlaying.className = 'now-playing';
+    }, 1500);
+  }
+  function pauseMusic(){ audioEl.pause(); }
+  function stopMusic(){
+    audioEl.pause();
+    audioEl.removeAttribute('src');
+    currentTrackId = null;
+    currentBuiltinId = null;
+    currentSegStart = null;
+    currentSegEnd = null;
+    if(nowPlayingClearHandle){ clearTimeout(nowPlayingClearHandle); nowPlayingClearHandle = null; }
+    nowPlaying.textContent = '';
+    nowPlaying.className = 'now-playing';
+  }
+
+  // The only place playback is driven from: called whenever the timer enters
+  // a phase. A phase with no assigned sound is silent (cues still beep).
+  function applyPhaseMusic(phase){
+    var assigned = assignments[phase];
+    if(assigned == null){ stopMusic(); return; }
+    if(typeof assigned === 'string' && assigned.indexOf('builtin:') === 0){
+      var soundId = assigned.slice('builtin:'.length);
+      currentBuiltinId = soundId;
+      playBuiltinOnce(soundId);
+      return;
+    }
+    if(!trackById(assigned)){ stopMusic(); return; }
+    if(currentTrackId !== assigned || !audioEl.loop){
+      playForPhase(assigned, true);
+    } else if(audioEl.paused){
+      audioEl.play().catch(function(){});
+    }
+  }
+
+  // ---------- settings sheet ----------
+  var settingsOverlay = document.getElementById('settingsOverlay');
+  var settingsBtn = document.getElementById('settingsBtn');
+  var closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  var applySettingsBtn = document.getElementById('applySettingsBtn');
+  var draft = Object.assign({}, settings);
+
+  function renderSteppers(){
+    document.querySelectorAll('.stepper').forEach(function(el){
+      var key = el.getAttribute('data-key');
+      var span = el.querySelector('span');
+      if(span) span.textContent = draft[key];
+    });
+  }
+  document.querySelectorAll('.stepper button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var wrap = btn.closest('.stepper');
+      var key = wrap.getAttribute('data-key');
+      var dir = parseInt(btn.getAttribute('data-dir'), 10);
+      var lim = LIMITS[key];
+      var next = Math.max(lim[0], Math.min(lim[1], draft[key] + dir*lim[2]));
+      draft[key] = next;
+      renderSteppers();
+    });
+  });
+
+  // Tapping the number itself opens a real number input so an exact value can be typed.
+  document.querySelectorAll('.stepper span').forEach(function(span){
+    span.setAttribute('tabindex', '0');
+    span.title = 'לחץ כדי להקליד מספר מדויק';
+    function beginEdit(){
+      var wrap = span.closest('.stepper');
+      var key = wrap.getAttribute('data-key');
+      var lim = LIMITS[key];
+      var input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'stepper-input';
+      input.min = lim[0]; input.max = lim[1]; input.step = lim[2];
+      input.value = draft[key];
+      wrap.replaceChild(input, span);
+      input.focus();
+      input.select();
+      var committed = false;
+      function commit(){
+        if(committed) return;
+        committed = true;
+        var val = parseInt(input.value, 10);
+        if(isNaN(val)) val = draft[key];
+        val = Math.max(lim[0], Math.min(lim[1], val));
+        draft[key] = val;
+        wrap.replaceChild(span, input);
+        renderSteppers();
+      }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+        else if(e.key === 'Escape'){ input.value = draft[key]; input.blur(); }
+      });
+    }
+    span.addEventListener('click', beginEdit);
+    span.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); beginEdit(); }
+    });
+  });
+
+  // ---------- editable phase names ----------
+  function applyLabelsToDOM(){
+    document.querySelectorAll('.phaseLabel').forEach(function(el){
+      var phase = el.getAttribute('data-phase');
+      el.textContent = labels[phase];
+    });
+  }
+  function refreshCurrentLabel(){
+    var kind = (stepIndex===0 && !running && phaseRemainingMs===null) ? 'idle' : ((plan[stepIndex] && plan[stepIndex].phase) || 'idle');
+    setPill(kind, labelFor(kind));
+  }
+  applyLabelsToDOM();
+
+  document.querySelectorAll('.edit-label-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var phase = btn.getAttribute('data-phase');
+      var wrap = btn.closest('.field-label');
+      var labelEl = wrap.querySelector('.phaseLabel');
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'label-edit-input';
+      input.maxLength = 20;
+      input.value = labels[phase];
+      wrap.replaceChild(input, labelEl);
+      input.focus();
+      input.select();
+      var committed = false;
+      function commit(){
+        if(committed) return;
+        committed = true;
+        var val = input.value.trim();
+        if(val) labels[phase] = val;
+        saveLabels();
+        labelEl.textContent = labels[phase];
+        wrap.replaceChild(labelEl, input);
+        refreshCurrentLabel();
+      }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+        else if(e.key === 'Escape'){ input.value = labels[phase]; input.blur(); }
+      });
+    });
+  });
+
+  // ---------- per-phase colors ----------
+  function applyColorsToDOM(){
+    document.querySelectorAll('.phaseColor').forEach(function(inp){
+      inp.value = phaseColors[inp.getAttribute('data-phase')];
+    });
+  }
+  document.querySelectorAll('.phaseColor').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var phase = inp.getAttribute('data-phase');
+      phaseColors[phase] = inp.value;
+      saveColors();
+      var kind = (stepIndex===0 && !running && phaseRemainingMs===null) ? 'idle' : ((plan[stepIndex] && plan[stepIndex].phase) || 'idle');
+      if(kind === phase && !activeFloodColor){
+        setPill(phase, labelFor(phase));
+        setRingColor(phase);
+      }
+    });
+  });
+
+  // ---------- reset to factory settings ----------
+  var resetDefaultsBtn = document.getElementById('resetDefaultsBtn');
+  resetDefaultsBtn.addEventListener('click', function(){
+    if(!confirm('לאפס זמנים, סבבים, שמות שלבים וצבעים לברירת המחדל?')) return;
+    draft = Object.assign({}, DEFAULTS);
+    labels = Object.assign({}, DEFAULT_LABELS);
+    phaseColors = Object.assign({}, DEFAULT_COLORS);
+    saveLabels();
+    saveColors();
+    applyLabelsToDOM();
+    applyColorsToDOM();
+    renderSteppers();
+    refreshCurrentLabel();
+  });
+
+  function openSettings(){
+    draft = Object.assign({}, settings);
+    renderSteppers();
+    renderSoundSelects();
+    applyColorsToDOM();
+    settingsOverlay.hidden = false;
+  }
+  function closeSettings(){ settingsOverlay.hidden = true; }
+  settingsBtn.addEventListener('click', openSettings);
+  closeSettingsBtn.addEventListener('click', closeSettings);
+  settingsOverlay.addEventListener('click', function(e){ if(e.target === settingsOverlay) closeSettings(); });
+  applySettingsBtn.addEventListener('click', function(){
+    settings = Object.assign({}, draft);
+    saveSettings();
+    closeSettings();
+    resetWorkout();
+  });
+
+  // ---------- share ----------
+  var shareBtn = document.getElementById('shareBtn');
+  shareBtn.addEventListener('click', function(){
+    var shareData = { title: document.title, text: 'נסו את ' + document.title + ' — טיימר אינטרוולים לאימונים', url: location.href };
+    if(navigator.share){
+      navigator.share(shareData).catch(function(){});
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(location.href).then(function(){
+        var prevTitle = shareBtn.title;
+        shareBtn.title = 'הקישור הועתק!';
+        setTimeout(function(){ shareBtn.title = prevTitle; }, 2000);
+      }).catch(function(){});
+    }
+  });
+
+  renderIdleFrame();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('service-worker.js').catch(function(e){ console.warn('SW registration failed', e); });
+  });
+}
+</script>
+
+</body>
+</html>
