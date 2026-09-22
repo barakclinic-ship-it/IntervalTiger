@@ -1007,6 +1007,30 @@
   var tickHandle = null;
   var lastBeepSecond = null;
 
+  // ---------- keep the screen awake during a workout ----------
+  // This is what actually fixes "the phone turns off and it stops": the
+  // phone's own screen-timeout was locking it mid-workout. A locked/
+  // backgrounded screen is something no website (this one included) can be
+  // woken back up from — only the Wake Lock API can stop the screen from
+  // locking in the first place while a workout is running.
+  var wakeLock = null;
+  function requestWakeLock(){
+    if(!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function(lock){
+      wakeLock = lock;
+      wakeLock.addEventListener('release', function(){ wakeLock = null; });
+    }).catch(function(){ /* not available right now — fail silently */ });
+  }
+  function releaseWakeLock(){
+    if(wakeLock){ wakeLock.release().catch(function(){}); wakeLock = null; }
+  }
+  document.addEventListener('visibilitychange', function(){
+    // iOS/Android release the lock whenever the tab is hidden (screen off,
+    // app switched away). If the workout is still running when the page
+    // becomes visible again, re-acquire it.
+    if(document.visibilityState === 'visible' && running){ requestWakeLock(); }
+  });
+
   var phasePill = document.getElementById('phasePill');
   var ringProgress = document.getElementById('ringProgress');
   var timeDisplay = document.getElementById('timeDisplay');
@@ -1277,6 +1301,7 @@
 
   function finishWorkout(){
     running = false;
+    releaseWakeLock();
     stopTick();
     clearFlood();
     setPill('done', labelFor("done"));
@@ -1348,6 +1373,7 @@
     if(ctx() && ctx().state === 'suspended'){ ctx().resume(); }
     if(!running){
       running = true;
+      requestWakeLock();
       setStartBtnLabel(ICON_PAUSE, 'השהה');
       resetBtn.disabled = false;
       if(phaseEndAt === null){
@@ -1363,6 +1389,7 @@
       startTick();
     } else {
       running = false;
+      releaseWakeLock();
       setStartBtnLabel(ICON_PLAY, 'המשך');
       phaseRemainingMs = Math.max(0, phaseEndAt - Date.now());
       stopTick();
@@ -1373,6 +1400,7 @@
 
   function resetWorkout(){
     running = false;
+    releaseWakeLock();
     stopTick();
     phaseEndAt = null;
     phaseRemainingMs = null;
@@ -1387,6 +1415,7 @@
   }
 
   startBtn.addEventListener('click', startOrResume);
+  setupMediaSession();
   resetBtn.addEventListener('click', resetWorkout);
   restartRoundBtn.addEventListener('click', restartRound);
   skipBtn.addEventListener('click', skipPhase);
@@ -1886,6 +1915,33 @@
     else { startRecording(); }
   });
 
+  // Lock-screen / control-center now-playing info. This doesn't make the
+  // timer itself run in the background (nothing can — see stopMusic below),
+  // but it gives iOS's own background-audio allowance the best chance of
+  // keeping the currently playing track going, and shows proper title +
+  // play/pause controls on the lock screen while it does.
+  function setupMediaSession(){
+    if(!('mediaSession' in navigator)) return;
+    try{
+      navigator.mediaSession.setActionHandler('play', function(){ if(!running) startOrResume(); });
+      navigator.mediaSession.setActionHandler('pause', function(){ if(running) startOrResume(); });
+    }catch(e){}
+  }
+  function updateMediaSessionMeta(title){
+    if(!('mediaSession' in navigator)) return;
+    try{
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title,
+        artist: 'TIGER · טיימר אינטרוולים'
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    }catch(e){}
+  }
+  function clearMediaSessionMeta(){
+    if(!('mediaSession' in navigator)) return;
+    try{ navigator.mediaSession.playbackState = 'none'; navigator.mediaSession.metadata = null; }catch(e){}
+  }
+
   function playForPhase(id, loop){
     var t = trackById(id);
     if(!t) return;
@@ -1907,6 +1963,7 @@
     audioEl.play().catch(function(){});
     nowPlaying.innerHTML = ICON_NOTE + '<span>' + t.name + (seg ? ' · מקטע ' + fmtTime(currentSegEnd - currentSegStart) : '') + '</span>';
     nowPlaying.className = 'now-playing on';
+    updateMediaSessionMeta(t.name);
   }
   var nowPlayingClearHandle = null;
   // Built-in sounds are a single cue, not a loop: play it once when the
@@ -1928,7 +1985,10 @@
       nowPlaying.className = 'now-playing';
     }, 1500);
   }
-  function pauseMusic(){ audioEl.pause(); }
+  function pauseMusic(){
+    audioEl.pause();
+    if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(e){} }
+  }
   function stopMusic(){
     audioEl.pause();
     audioEl.removeAttribute('src');
@@ -1939,6 +1999,7 @@
     if(nowPlayingClearHandle){ clearTimeout(nowPlayingClearHandle); nowPlayingClearHandle = null; }
     nowPlaying.textContent = '';
     nowPlaying.className = 'now-playing';
+    clearMediaSessionMeta();
   }
 
   // The only place playback is driven from: called whenever the timer enters
