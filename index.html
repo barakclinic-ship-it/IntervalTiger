@@ -436,9 +436,9 @@
     margin-top: 4px;
   }
   .color-row .clabel{ font-size: 13px; color: var(--text-dim); flex: 1; }
-  /* The native color input stays in the DOM (it's what actually stores/
-     opens the OS picker for the "custom" swatch) but is visually replaced
-     by the round swatch row below, which matches TIGER's own palette. */
+  /* The native color input stays in the DOM (it's the actual source of
+     truth for the phase color, and backs the "custom" option inside the
+     popup below), but is never shown itself. */
   .phaseColor{
     position: absolute;
     width: 1px;
@@ -449,41 +449,88 @@
     overflow: hidden;
     opacity: 0;
   }
-  .color-swatches{
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    flex-wrap: wrap;
-    flex: 1;
-    justify-content: flex-end;
-  }
-  .color-swatch{
-    width: 30px;
-    height: 30px;
+  /* A single round swatch showing the phase's current color. Tapping it
+     opens a small, app-styled popup instead of the OS color picker. */
+  .color-current{
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    border: 2px solid transparent;
+    border: 2px solid var(--border);
     padding: 0;
     cursor: pointer;
     flex-shrink: 0;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+    transition: transform .15s ease;
+  }
+  .color-current:active{ transform: scale(.9); }
+
+  .color-popup-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 26;
+  }
+  .color-popup-sheet{
+    background: var(--surface);
+    border-radius: 22px 22px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 18px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .color-popup-title{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .color-popup-grid{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    justify-items: center;
+  }
+  .color-popup-swatch{
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);
     transition: transform .15s ease, border-color .15s ease;
   }
-  .color-swatch:active{ transform: scale(.88); }
-  .color-swatch.selected{
+  .color-popup-swatch:active{ transform: scale(.9); }
+  .color-popup-swatch.selected{
     border-color: var(--text);
     box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px currentColor;
   }
-  .color-swatch.custom{
-    background: var(--surface-2);
+  .color-popup-custom-row{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .color-popup-custom-row .clabel{ font-size: 13px; color: var(--text-dim); flex: 1; }
+  .color-popup-custom-swatch{
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     border: 2px dashed var(--border);
+    background: var(--surface-2);
     color: var(--accent-soft);
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  .color-swatch.custom.selected{
-    border-style: solid;
-    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent-soft);
+    cursor: pointer;
+    flex-shrink: 0;
   }
   .reset-defaults-btn{ margin-top: 4px; }
   .sound-row{
@@ -972,6 +1019,22 @@
 
     <button class="btn primary btn-save" id="applySettingsBtn">שמור</button>
     <button class="btn ghost reset-defaults-btn" id="resetDefaultsBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg><span>אפס להגדרות ראשוניות</span></button>
+  </div>
+</div>
+
+<div class="color-popup-overlay" id="colorPopupOverlay" hidden>
+  <div class="color-popup-sheet">
+    <div class="color-popup-title">
+      <span>צבע השלב</span>
+      <button class="iconbtn" id="closeColorPopupBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="color-popup-grid" id="colorPopupGrid"></div>
+    <div class="color-popup-custom-row">
+      <span class="clabel">צבע מותאם אישית</span>
+      <button type="button" class="color-popup-custom-swatch" id="colorPopupCustomBtn" title="צבע מותאם אישית">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -2192,57 +2255,36 @@
   });
 
   // ---------- per-phase colors ----------
-  // A curated palette matching TIGER's own dark/purple look, shown as round
-  // swatches instead of the plain native color-picker square. A last
-  // "custom" swatch still opens the OS picker for anything else.
-  var COLOR_PALETTE = ['#ffc247','#ff5c5c','#35d0a0','#8c6bff','#4da6ff','#ff6bcb','#f5e14f','#33c2e0','#ff8a3d','#c9c9d4'];
+  // Soft, muted pastel tones only — nothing neon or "shouting" — matching
+  // TIGER's own quiet dark/purple look. Picking one opens a small app-styled
+  // popup (not the OS color picker), reached by tapping a single round
+  // swatch that shows the phase's current color.
+  var COLOR_PALETTE = ['#e6c9a0','#e3a9a0','#a9cdb8','#b6a8d9','#a3c3dd','#dba9c4','#dcd3a0','#a3cfd0','#c9c2db','#b9bcc4'];
 
-  function refreshSwatchRow(phase){
-    var row = document.querySelector('.color-swatches[data-phase="' + phase + '"]');
-    if(!row) return;
-    var current = (phaseColors[phase] || '').toLowerCase();
-    var matched = false;
-    row.querySelectorAll('.color-swatch:not(.custom)').forEach(function(sw){
-      var isSel = sw.getAttribute('data-color').toLowerCase() === current;
-      sw.classList.toggle('selected', isSel);
-      if(isSel) matched = true;
-    });
-    var customSw = row.querySelector('.color-swatch.custom');
-    if(customSw){
-      customSw.classList.toggle('selected', !matched);
-      customSw.style.background = matched ? '' : current;
-    }
+  function applyColorToInput(phase, hex){
+    var inp = document.querySelector('.phaseColor[data-phase="' + phase + '"]');
+    if(!inp) return;
+    inp.value = hex;
+    inp.dispatchEvent(new Event('input', {bubbles:true}));
   }
 
-  function buildColorSwatches(){
+  function refreshColorCurrent(phase){
+    var btn = document.querySelector('.color-current[data-phase="' + phase + '"]');
+    if(btn) btn.style.background = phaseColors[phase] || '';
+  }
+
+  function buildColorPickers(){
     document.querySelectorAll('.phaseColor').forEach(function(inp){
       var phase = inp.getAttribute('data-phase');
-      if(inp.dataset.swatchesBuilt) return;
-      inp.dataset.swatchesBuilt = '1';
-      var row = document.createElement('div');
-      row.className = 'color-swatches';
-      row.setAttribute('data-phase', phase);
-      COLOR_PALETTE.forEach(function(hex){
-        var sw = document.createElement('button');
-        sw.type = 'button';
-        sw.className = 'color-swatch';
-        sw.setAttribute('data-color', hex);
-        sw.style.background = hex;
-        sw.setAttribute('aria-label', 'צבע ' + hex);
-        sw.addEventListener('click', function(){
-          inp.value = hex;
-          inp.dispatchEvent(new Event('input', {bubbles:true}));
-        });
-        row.appendChild(sw);
-      });
-      var customSw = document.createElement('button');
-      customSw.type = 'button';
-      customSw.className = 'color-swatch custom';
-      customSw.title = 'צבע מותאם אישית';
-      customSw.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
-      customSw.addEventListener('click', function(){ inp.click(); });
-      row.appendChild(customSw);
-      inp.insertAdjacentElement('afterend', row);
+      if(inp.dataset.pickerBuilt) return;
+      inp.dataset.pickerBuilt = '1';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'color-current';
+      btn.setAttribute('data-phase', phase);
+      btn.setAttribute('aria-label', 'בחר צבע לשלב');
+      btn.addEventListener('click', function(){ openColorPopup(phase); });
+      inp.insertAdjacentElement('afterend', btn);
     });
   }
 
@@ -2250,17 +2292,17 @@
     document.querySelectorAll('.phaseColor').forEach(function(inp){
       var phase = inp.getAttribute('data-phase');
       inp.value = phaseColors[phase];
-      refreshSwatchRow(phase);
+      refreshColorCurrent(phase);
     });
   }
-  buildColorSwatches();
+  buildColorPickers();
   applyColorsToDOM();
   document.querySelectorAll('.phaseColor').forEach(function(inp){
     inp.addEventListener('input', function(){
       var phase = inp.getAttribute('data-phase');
       phaseColors[phase] = inp.value;
       saveColors();
-      refreshSwatchRow(phase);
+      refreshColorCurrent(phase);
       var kind = (stepIndex===0 && !running && phaseRemainingMs===null) ? 'idle' : ((plan[stepIndex] && plan[stepIndex].phase) || 'idle');
       if(kind === phase){
         setPill(phase, labelFor(phase));
@@ -2270,6 +2312,58 @@
         }
       }
     });
+  });
+
+  // ---------- color popup ----------
+  var colorPopupOverlay = document.getElementById('colorPopupOverlay');
+  var colorPopupGrid = document.getElementById('colorPopupGrid');
+  var colorPopupCustomBtn = document.getElementById('colorPopupCustomBtn');
+  var closeColorPopupBtn = document.getElementById('closeColorPopupBtn');
+  var colorPopupPhase = null;
+
+  COLOR_PALETTE.forEach(function(hex){
+    var sw = document.createElement('button');
+    sw.type = 'button';
+    sw.className = 'color-popup-swatch';
+    sw.setAttribute('data-color', hex);
+    sw.style.background = hex;
+    sw.setAttribute('aria-label', 'צבע ' + hex);
+    sw.addEventListener('click', function(){
+      if(!colorPopupPhase) return;
+      applyColorToInput(colorPopupPhase, hex);
+      refreshColorPopupSelection();
+      closeColorPopup();
+    });
+    colorPopupGrid.appendChild(sw);
+  });
+
+  function refreshColorPopupSelection(){
+    var current = (phaseColors[colorPopupPhase] || '').toLowerCase();
+    colorPopupGrid.querySelectorAll('.color-popup-swatch').forEach(function(sw){
+      sw.classList.toggle('selected', sw.getAttribute('data-color').toLowerCase() === current);
+    });
+  }
+
+  function openColorPopup(phase){
+    colorPopupPhase = phase;
+    refreshColorPopupSelection();
+    colorPopupOverlay.hidden = false;
+  }
+  function closeColorPopup(){ colorPopupOverlay.hidden = true; colorPopupPhase = null; }
+  closeColorPopupBtn.addEventListener('click', closeColorPopup);
+  colorPopupOverlay.addEventListener('click', function(e){ if(e.target === colorPopupOverlay) closeColorPopup(); });
+  colorPopupCustomBtn.addEventListener('click', function(){
+    if(!colorPopupPhase) return;
+    var inp = document.querySelector('.phaseColor[data-phase="' + colorPopupPhase + '"]');
+    if(!inp) return;
+    var phase = colorPopupPhase;
+    var onPicked = function(){
+      refreshColorPopupSelection();
+      inp.removeEventListener('input', onPicked);
+      closeColorPopup();
+    };
+    inp.addEventListener('input', onPicked);
+    inp.click();
   });
 
   // ---------- reset to factory settings ----------
