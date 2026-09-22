@@ -511,27 +511,6 @@
     border-color: var(--text);
     box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px currentColor;
   }
-  .color-popup-custom-row{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-  .color-popup-custom-row .clabel{ font-size: 13px; color: var(--text-dim); flex: 1; }
-  .color-popup-custom-swatch{
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px dashed var(--border);
-    background: var(--surface-2);
-    color: var(--accent-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
   .reset-defaults-btn{ margin-top: 4px; }
   .sound-row{
     display: flex;
@@ -1029,12 +1008,6 @@
       <button class="iconbtn" id="closeColorPopupBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="color-popup-grid" id="colorPopupGrid"></div>
-    <div class="color-popup-custom-row">
-      <span class="clabel">צבע מותאם אישית</span>
-      <button type="button" class="color-popup-custom-swatch" id="colorPopupCustomBtn" title="צבע מותאם אישית">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-    </div>
   </div>
 </div>
 
@@ -2259,7 +2232,7 @@
   // TIGER's own quiet dark/purple look. Picking one opens a small app-styled
   // popup (not the OS color picker), reached by tapping a single round
   // swatch that shows the phase's current color.
-  var COLOR_PALETTE = ['#e6c9a0','#e3a9a0','#a9cdb8','#b6a8d9','#a3c3dd','#dba9c4','#dcd3a0','#a3cfd0','#c9c2db','#b9bcc4'];
+  var COLOR_PALETTE = ['#d9635c','#dd9752','#d3bd52','#4fa876','#3f9fa3','#4f8fce','#8d72d6','#c968a0','#8a7a68','#8890a0'];
 
   function applyColorToInput(phase, hex){
     var inp = document.querySelector('.phaseColor[data-phase="' + phase + '"]');
@@ -2317,7 +2290,6 @@
   // ---------- color popup ----------
   var colorPopupOverlay = document.getElementById('colorPopupOverlay');
   var colorPopupGrid = document.getElementById('colorPopupGrid');
-  var colorPopupCustomBtn = document.getElementById('colorPopupCustomBtn');
   var closeColorPopupBtn = document.getElementById('closeColorPopupBtn');
   var colorPopupPhase = null;
 
@@ -2352,19 +2324,6 @@
   function closeColorPopup(){ colorPopupOverlay.hidden = true; colorPopupPhase = null; }
   closeColorPopupBtn.addEventListener('click', closeColorPopup);
   colorPopupOverlay.addEventListener('click', function(e){ if(e.target === colorPopupOverlay) closeColorPopup(); });
-  colorPopupCustomBtn.addEventListener('click', function(){
-    if(!colorPopupPhase) return;
-    var inp = document.querySelector('.phaseColor[data-phase="' + colorPopupPhase + '"]');
-    if(!inp) return;
-    var phase = colorPopupPhase;
-    var onPicked = function(){
-      refreshColorPopupSelection();
-      inp.removeEventListener('input', onPicked);
-      closeColorPopup();
-    };
-    inp.addEventListener('input', onPicked);
-    inp.click();
-  });
 
   // ---------- reset to factory settings ----------
   var resetDefaultsBtn = document.getElementById('resetDefaultsBtn');
