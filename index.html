@@ -2,19 +2,19 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>TIGER</title>
-<meta name="description" content="TIGER - טיימר אינטרוולים לאימונים">
-<meta name="theme-color" content="#0b0b0f">
 <meta name="color-scheme" content="dark">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0d10">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TIGER">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+</head>
+<body>
 <style>
   :root{
     /* Hints the browser (scrollbars, form controls, the iOS overscroll/
@@ -33,9 +33,13 @@
     --rest-dim: #17352c;
     --prepare: #ffc247;
     --prepare-dim: #3a2e10;
-    --accent: #8c6bff;
-    --accent-soft: #a99bea;
-    --accent-dim: #241c40;
+    /* No brand purple: every "accent" surface in the UI chrome is plain
+       white (or, where it sits on a light background, plain black) —
+       color is reserved entirely for the phase-flood feature. */
+    --accent: #ffffff;
+    --accent-soft: #ffffff;
+    --accent-dim: #2a2a36;
+    --on-accent: #0b0b0f;
     --danger: #ff5c5c;
     --shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
@@ -54,7 +58,10 @@
     --work-dim: #ffe0e0;
     --rest-dim: #d8f6ec;
     --prepare-dim: #fff2d6;
-    --accent-dim: #eae4ff;
+    --accent: #000000;
+    --accent-soft: #000000;
+    --accent-dim: #eeedf4;
+    --on-accent: #ffffff;
     --shadow: 0 10px 30px rgba(30,20,60,0.08);
   }
 
@@ -109,8 +116,8 @@
     align-items: center;
     gap: 6px;
   }
-  /* Plain, borderless icon buttons in a soft/weak purple — no box, no
-     background, just the icon sitting on the dark background. */
+  /* Plain, borderless icon buttons in white — no box, no background,
+     just the icon sitting on the dark background. */
   .header-icon{
     width: 44px;
     height: 44px;
@@ -225,8 +232,8 @@
   .phase-pill.prepare{ background: var(--prepare-dim); color: var(--prepare); }
   .phase-pill.work{ background: var(--work-dim); color: var(--work); }
   .phase-pill.rest{ background: var(--rest-dim); color: var(--rest); }
-  .phase-pill.setrest{ background: var(--accent-dim); color: var(--accent); }
-  .phase-pill.done{ background: var(--accent-dim); color: var(--accent); }
+  .phase-pill.setrest{ background: var(--surface-2); color: var(--text); }
+  .phase-pill.done{ background: var(--surface-2); color: var(--text); }
   .phase-pill.idle{ background: var(--surface-2); color: var(--text-dim); }
   /* When the phase color floods the whole card, dim/tinted text would
      vanish into it — force strong contrast instead. */
@@ -311,7 +318,7 @@
     transition: transform .1s, opacity .2s;
   }
   .btn:active{ transform: scale(0.97); }
-  .btn.primary{ background: var(--accent); color: white; }
+  .btn.primary{ background: var(--accent); color: var(--on-accent); }
   .btn.ghost{ background: var(--surface-2); color: var(--text); }
   .btn.wide{ flex: 2; }
   .btn:disabled{ opacity: .45; cursor: not-allowed; }
@@ -330,12 +337,27 @@
     border-radius: 22px 22px 0 0;
     width: 100%;
     max-width: 480px;
-    padding: 18px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: 18px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    max-height: 88vh;
+    overflow: hidden;
+  }
+  /* Only this middle part scrolls — the title above and the save button
+     below stay put, so "שמור" is always reachable without scrolling. */
+  .settings-scroll{
+    overflow-y: auto;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 88vh;
-    overflow-y: auto;
+    min-height: 0;
+  }
+  .settings-footer{
+    flex-shrink: 0;
+    padding-top: 12px;
+    margin-top: 4px;
+    border-top: 1px solid var(--border);
   }
   .settings-title{
     display: flex;
@@ -511,7 +533,7 @@
     border-color: var(--text);
     box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px currentColor;
   }
-  .reset-defaults-btn{ margin-top: 4px; }
+  .reset-defaults-btn{ margin-top: 8px; flex-shrink: 0; }
   .sound-row{
     display: flex;
     align-items: center;
@@ -607,7 +629,7 @@
     border-radius: 50%;
     border: none;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -652,8 +674,8 @@
   .tracks-manage .mtrack .seg-badge{
     font-size: 11px;
     font-weight: 800;
-    color: var(--accent);
-    background: var(--accent-dim);
+    color: var(--text);
+    background: var(--surface-2);
     padding: 2px 8px;
     border-radius: 999px;
     flex-shrink: 0;
@@ -669,7 +691,7 @@
     font-size: 15px;
     flex-shrink: 0;
   }
-  .tracks-manage .mtrack .segbtn:hover{ background: var(--accent-dim); color: var(--accent); }
+  .tracks-manage .mtrack .segbtn:hover{ background: var(--surface-2); color: var(--text); }
   .seg-editor{
     background: var(--surface);
     border: 1px solid var(--border);
@@ -718,7 +740,7 @@
     background: var(--accent);
     border-radius: 2px;
   }
-  /* Grip in the middle of the purple segment — dragging it slides the
+  /* Grip in the middle of the highlighted segment — dragging it slides the
      whole segment left/right without changing its length. */
   .seg-fill-handle{
     position: absolute;
@@ -729,7 +751,7 @@
     height: 24px;
     border-radius: 8px;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -792,7 +814,7 @@
     line-height: 1.5;
   }
 
-  .btn-save{ margin-top: 12px; }
+  .btn-save{ width: 100%; }
   [hidden]{ display: none !important; }
 </style>
 
@@ -821,7 +843,7 @@
     <div class="ring-wrap">
       <svg viewBox="0 0 200 200">
         <circle class="ring-track" cx="100" cy="100" r="88"></circle>
-        <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="88" stroke="#8c6bff"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="88" stroke="#ffffff"></circle>
       </svg>
       <div class="ring-center">
         <div class="time" id="timeDisplay">00:00</div>
@@ -851,6 +873,7 @@
       <button class="iconbtn" id="closeSettingsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
+    <div class="settings-scroll">
     <div class="field-group">
       <div class="library-panel">
         <div class="tm-header">
@@ -995,8 +1018,11 @@
         <select class="soundSelect" data-phase="setrest"></select>
       </div>
     </div>
+    </div>
 
-    <button class="btn primary btn-save" id="applySettingsBtn">שמור</button>
+    <div class="settings-footer">
+      <button class="btn primary btn-save" id="applySettingsBtn">שמור</button>
+    </div>
     <button class="btn ghost reset-defaults-btn" id="resetDefaultsBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg><span>אפס להגדרות ראשוניות</span></button>
   </div>
 </div>
@@ -1151,7 +1177,7 @@
   function saveLabels(){ try{ localStorage.setItem('tabata_pulse_labels_v1', JSON.stringify(labels)); }catch(e){} }
   function labelFor(phase){ return labels[phase] || FIXED_LABELS[phase] || phase; }
 
-  var DEFAULT_COLORS = { prepare: '#ffc247', work: '#ff5c5c', rest: '#35d0a0', setrest: '#8c6bff' };
+  var DEFAULT_COLORS = { prepare: '#ffc247', work: '#ff5c5c', rest: '#35d0a0', setrest: '#4f8fce' };
   var phaseColors = Object.assign({}, DEFAULT_COLORS);
   try{
     var savedColors = JSON.parse(localStorage.getItem('tabata_pulse_colors_v1') || '{}');
@@ -1254,23 +1280,47 @@
     if(!actx){ try{ actx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} }
     return actx;
   }
-  // A limiter so the louder beeps below don't clip / distort.
+  // A limiter so the louder beeps below don't clip / distort, plus a
+  // makeup-gain stage after it so the compressed signal still comes out
+  // loud (compression alone only protects against clipping — it doesn't
+  // raise the average level, which is what actually cuts through music).
+  var masterMakeup = null;
   function comp(c){
     if(!masterCompressor){
       masterCompressor = c.createDynamicsCompressor();
       try{
-        masterCompressor.threshold.setValueAtTime(-14, c.currentTime);
-        masterCompressor.knee.setValueAtTime(8, c.currentTime);
-        masterCompressor.ratio.setValueAtTime(10, c.currentTime);
-        masterCompressor.attack.setValueAtTime(0.002, c.currentTime);
-        masterCompressor.release.setValueAtTime(0.15, c.currentTime);
+        masterCompressor.threshold.setValueAtTime(-24, c.currentTime);
+        masterCompressor.knee.setValueAtTime(6, c.currentTime);
+        masterCompressor.ratio.setValueAtTime(14, c.currentTime);
+        masterCompressor.attack.setValueAtTime(0.001, c.currentTime);
+        masterCompressor.release.setValueAtTime(0.12, c.currentTime);
       }catch(e){}
-      masterCompressor.connect(c.destination);
+      masterMakeup = c.createGain();
+      masterMakeup.gain.setValueAtTime(1.8, c.currentTime);
+      masterCompressor.connect(masterMakeup).connect(c.destination);
     }
     return masterCompressor;
   }
-  // Main tone plus a square-wave harmonic layer on top — much louder /
-  // more piercing than a single sine at the same gain.
+  // Turns the background track down for a moment so a cue beep cuts
+  // through it instead of getting buried under it, then brings it back.
+  var duckRestoreHandle = null;
+  var duckBaseVolume = null;
+  function duckMusic(ms){
+    try{
+      if(!audioEl || audioEl.paused) return;
+      if(duckRestoreHandle){ clearTimeout(duckRestoreHandle); }
+      else { duckBaseVolume = audioEl.volume; }
+      audioEl.volume = Math.max(0, (duckBaseVolume == null ? 1 : duckBaseVolume) * 0.25);
+      duckRestoreHandle = setTimeout(function(){
+        audioEl.volume = duckBaseVolume == null ? 1 : duckBaseVolume;
+        duckRestoreHandle = null;
+        duckBaseVolume = null;
+      }, ms);
+    }catch(e){}
+  }
+  // Main tone plus a square-wave harmonic layer, plus a sub-harmonic layer
+  // an octave down — three voices read as much louder / more piercing than
+  // a single sine at the same peak gain, and cut through music better.
   function beep(freq, durMs, vol, wave){
     var c = ctx();
     if(!c) return;
@@ -1281,7 +1331,7 @@
     osc.type = wave || 'sine';
     osc.frequency.setValueAtTime(freq, t0);
     gain.gain.setValueAtTime(0, t0);
-    gain.gain.linearRampToValueAtTime(vol, t0 + 0.008);
+    gain.gain.linearRampToValueAtTime(vol, t0 + 0.006);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
     osc.connect(gain).connect(dest);
     osc.start(t0);
@@ -1292,18 +1342,30 @@
     osc2.type = 'square';
     osc2.frequency.setValueAtTime(freq*2, t0);
     gain2.gain.setValueAtTime(0, t0);
-    gain2.gain.linearRampToValueAtTime(vol*0.4, t0 + 0.008);
+    gain2.gain.linearRampToValueAtTime(vol*0.55, t0 + 0.006);
     gain2.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
     osc2.connect(gain2).connect(dest);
     osc2.start(t0);
     osc2.stop(t0 + durMs/1000 + 0.03);
+
+    var osc3 = c.createOscillator();
+    var gain3 = c.createGain();
+    osc3.type = 'sawtooth';
+    osc3.frequency.setValueAtTime(freq/2, t0);
+    gain3.gain.setValueAtTime(0, t0);
+    gain3.gain.linearRampToValueAtTime(vol*0.35, t0 + 0.006);
+    gain3.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
+    osc3.connect(gain3).connect(dest);
+    osc3.start(t0);
+    osc3.stop(t0 + durMs/1000 + 0.03);
   }
-  function cueTick(){ beep(1000, 110, 0.6); }
+  function cueTick(){ duckMusic(220); beep(1000, 130, 0.85); }
   function cuePhaseStart(phase){
-    if(phase === 'work') { beep(1200, 230, 0.95); }
-    else if(phase === 'rest') { beep(700, 280, 0.85); }
-    else if(phase === 'setrest') { beep(520, 300, 0.85); }
-    else if(phase === 'done') { beep(700,150,0.85); setTimeout(function(){beep(850,150,0.85);},160); setTimeout(function(){beep(1050,300,0.9);},320); }
+    duckMusic(phase === 'done' ? 900 : 500);
+    if(phase === 'work') { beep(1200, 260, 1); }
+    else if(phase === 'rest') { beep(700, 300, 0.95); }
+    else if(phase === 'setrest') { beep(520, 320, 0.95); }
+    else if(phase === 'done') { beep(700,150,0.95); setTimeout(function(){beep(850,150,0.95);},160); setTimeout(function(){beep(1050,300,1);},320); }
   }
   function vibrate(pattern){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
 
@@ -1371,7 +1433,7 @@
   var BUILTIN_SOUNDS = [
     { id:'beep',    name:'ביפ קלאסי', color:'#34d399', play: classicBeepTone },
     { id:'double',  name:'ביפ כפול',  color:'#2dd4bf', play: doubleBeepTone },
-    { id:'bell',    name:'פעמון',     color:'#a78bfa', play: bellTone },
+    { id:'bell',    name:'פעמון',     color:'#60a5fa', play: bellTone },
     { id:'whistle', name:'שריקה',     color:'#fbbf24', play: whistleTone },
     { id:'buzzer',  name:'באזר',      color:'#fb7185', play: buzzTone },
     { id:'siren',   name:'סירנה',     color:'#f472b6', play: sirenTone }
@@ -1588,12 +1650,48 @@
   var currentSegEnd = null;
   var audioEl = new Audio();
   audioEl.preload = 'metadata';
+  // Full-track looping is done manually (see 'ended' below) instead of via
+  // the native `loop` attribute. Recorded clips (MediaRecorder) and some
+  // uploaded files report an unreliable duration (often Infinity) until the
+  // browser has fully indexed the file — with `loop` set, that confuses the
+  // browser about where the track actually ends and it can restart the clip
+  // every second or two ("rapid repeat"). Restarting from the real `ended`
+  // event side-steps the bad duration entirely, since `ended` fires only
+  // when playback genuinely runs out of data.
+  var shouldLoopFull = false;
+  audioEl.loop = false;
+  audioEl.addEventListener('ended', function(){
+    if(shouldLoopFull && currentSegEnd == null){
+      try{ audioEl.currentTime = 0; audioEl.play().catch(function(){}); }
+      catch(e){}
+    }
+  });
   // A segment plays once and stops at its end — it does not loop back to
   // its start, even if the phase it's assigned to runs longer than it.
   audioEl.addEventListener('timeupdate', function(){
     if(currentSegEnd != null && !audioEl.paused && audioEl.currentTime >= currentSegEnd - 0.08){
       audioEl.pause();
       nowPlaying.className = 'now-playing';
+    }
+  });
+  // Some blobs (especially MediaRecorder recordings) report duration as
+  // Infinity/NaN right after loading. Nudging playback position forces the
+  // browser to recalculate the real duration/seekable range, which makes
+  // both the manual loop above and the on-screen time behave correctly.
+  audioEl.addEventListener('durationchange', function(){
+    if(audioEl.duration === Infinity && !audioEl._durationFixApplied){
+      audioEl._durationFixApplied = true;
+      var wasPaused = audioEl.paused;
+      var t = audioEl.currentTime;
+      try{
+        audioEl.currentTime = 1e7;
+        setTimeout(function(){
+          try{
+            audioEl.currentTime = t || 0;
+            if(!wasPaused) audioEl.play().catch(function(){});
+          }catch(e){}
+        }, 60);
+      }catch(e){}
     }
   });
 
@@ -1761,7 +1859,7 @@
       refreshLabels();
     });
 
-    // Grip in the middle of the purple segment: dragging it slides the
+    // Grip in the middle of the highlighted segment: dragging it slides the
     // whole segment left/right, keeping its length fixed.
     var fillHandle = wrap.querySelector('.seg-fill-handle');
     var sliderEl = wrap.querySelector('.seg-slider');
@@ -2049,7 +2147,9 @@
     var seg = hasSegment(t);
     currentSegStart = seg ? t.segStart : null;
     currentSegEnd = seg ? t.segEnd : null;
-    audioEl.loop = !!loop && !seg; // segments loop manually (see timeupdate above)
+    shouldLoopFull = !!loop && !seg; // segments don't loop (see timeupdate above); full tracks loop manually (see 'ended' above)
+    audioEl.loop = false;
+    audioEl._durationFixApplied = false;
     audioEl.src = URL.createObjectURL(srcBlob);
     if(seg){
       var seekTo = currentSegStart;
@@ -2072,6 +2172,7 @@
     currentTrackId = null;
     currentSegStart = null;
     currentSegEnd = null;
+    shouldLoopFull = false;
     snd.play();
     nowPlaying.textContent = snd.name;
     nowPlaying.className = 'now-playing on';
@@ -2092,6 +2193,7 @@
     currentBuiltinId = null;
     currentSegStart = null;
     currentSegEnd = null;
+    shouldLoopFull = false;
     if(nowPlayingClearHandle){ clearTimeout(nowPlayingClearHandle); nowPlayingClearHandle = null; }
     nowPlaying.textContent = '';
     nowPlaying.className = 'now-playing';
@@ -2110,7 +2212,7 @@
       return;
     }
     if(!trackById(assigned)){ stopMusic(); return; }
-    if(currentTrackId !== assigned || !audioEl.loop){
+    if(currentTrackId !== assigned || !shouldLoopFull){
       playForPhase(assigned, true);
     } else if(audioEl.paused){
       audioEl.play().catch(function(){});
@@ -2228,10 +2330,10 @@
   });
 
   // ---------- per-phase colors ----------
-  // Soft, muted pastel tones only — nothing neon or "shouting" — matching
-  // TIGER's own quiet dark/purple look. Picking one opens a small app-styled
-  // popup (not the OS color picker), reached by tapping a single round
-  // swatch that shows the phase's current color.
+  // Muted-but-recognizable standard hues only — nothing neon or "shouting".
+  // Picking one opens a small app-styled popup (not the OS color picker),
+  // reached by tapping a single round swatch that shows the phase's
+  // current color.
   var COLOR_PALETTE = ['#d9635c','#dd9752','#d3bd52','#4fa876','#3f9fa3','#4f8fce','#8d72d6','#c968a0','#8a7a68','#8890a0'];
 
   function applyColorToInput(phase, hex){
@@ -2409,16 +2511,20 @@
   iosInstallOverlay.addEventListener('click', function(e){ if(e.target === iosInstallOverlay) iosInstallOverlay.hidden = true; });
 
   renderIdleFrame();
+
+  // The app now opens straight into settings: land on "הגדרות", the person
+  // reviews/sets their times and sounds, and only after pressing "שמור"
+  // does the actual (black-and-white, phase-colors-only) timer screen show.
+  openSettings();
 })();
 </script>
 
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('service-worker.js').catch(function(e){ console.warn('SW registration failed', e); });
+    navigator.serviceWorker.register('./service-worker.js').catch(function(){});
   });
 }
 </script>
-
 </body>
 </html>
