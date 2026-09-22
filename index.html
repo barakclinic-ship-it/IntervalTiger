@@ -124,6 +124,53 @@
     padding: 0;
   }
   .share-btn:active{ transform: scale(0.94); }
+
+  .install-guide-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 25;
+  }
+  .install-guide-card{
+    background: var(--surface);
+    border-radius: 22px 22px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 18px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .install-guide-title{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .install-guide-step{
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .install-guide-num{
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
   .iconbtn{
     width: 40px;
     height: 40px;
@@ -621,6 +668,9 @@
       <button class="share-btn" id="shareBtn" aria-label="שתף" title="שתף את האפליקציה">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-3.9M8.6 13.4l6.8 3.9"/></svg>
       </button>
+      <button class="share-btn install-btn" id="installBtn" aria-label="התקן על המסך הבית" title="התקן על המסך הבית" hidden>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
+      </button>
     </div>
     <button class="iconbtn" id="settingsBtn" aria-label="הגדרות" title="הגדרות">⚙</button>
   </header>
@@ -803,6 +853,27 @@
 
     <button class="btn primary btn-save" id="applySettingsBtn">שמור</button>
     <button class="btn ghost reset-defaults-btn" id="resetDefaultsBtn">↺ אפס להגדרות ראשוניות</button>
+  </div>
+</div>
+
+<div class="install-guide-overlay" id="iosInstallOverlay" hidden>
+  <div class="install-guide-card">
+    <div class="install-guide-title">
+      <span>התקנה על מסך הבית</span>
+      <button class="iconbtn" id="closeIosGuideBtn">✕</button>
+    </div>
+    <div class="install-guide-step">
+      <span class="install-guide-num">1</span>
+      <span>לחצו על כפתור השיתוף <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><rect x="5" y="10" width="14" height="10" rx="2"/></svg> בסרגל הכלים של ספארי</span>
+    </div>
+    <div class="install-guide-step">
+      <span class="install-guide-num">2</span>
+      <span>גללו למטה ובחרו <b>"הוסף למסך הבית"</b> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>
+    </div>
+    <div class="install-guide-step">
+      <span class="install-guide-num">3</span>
+      <span>לחצו <b>"הוסף"</b> בפינה — ותוכלו לפתוח את TIGER ישירות מהמסך הבית</span>
+    </div>
   </div>
 </div>
 
@@ -1816,6 +1887,41 @@
       }).catch(function(){});
     }
   });
+
+  // ---------- install to home screen ----------
+  var installBtn = document.getElementById('installBtn');
+  var iosInstallOverlay = document.getElementById('iosInstallOverlay');
+  var closeIosGuideBtn = document.getElementById('closeIosGuideBtn');
+  var deferredInstallPrompt = null;
+  var isStandaloneApp = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  var isIOSDevice = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+  function updateInstallButton(){
+    if(isStandaloneApp){ installBtn.hidden = true; return; }
+    installBtn.hidden = !(deferredInstallPrompt || isIOSDevice);
+  }
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    updateInstallButton();
+  });
+  window.addEventListener('appinstalled', function(){
+    deferredInstallPrompt = null;
+    isStandaloneApp = true;
+    updateInstallButton();
+  });
+  updateInstallButton();
+
+  installBtn.addEventListener('click', function(){
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(function(){ deferredInstallPrompt = null; updateInstallButton(); }).catch(function(){});
+    } else if(isIOSDevice){
+      iosInstallOverlay.hidden = false;
+    }
+  });
+  closeIosGuideBtn.addEventListener('click', function(){ iosInstallOverlay.hidden = true; });
+  iosInstallOverlay.addEventListener('click', function(e){ if(e.target === iosInstallOverlay) iosInstallOverlay.hidden = true; });
 
   renderIdleFrame();
 })();
