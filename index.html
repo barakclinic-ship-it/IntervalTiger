@@ -2229,11 +2229,15 @@
   var applySettingsBtn = document.getElementById('applySettingsBtn');
   var draft = Object.assign({}, settings);
 
+  // rounds/sets are plain counts; every other stepper key is a duration in
+  // seconds that should be shown and typed as minutes:seconds.
+  function isTimeKey(key){ return key !== 'rounds' && key !== 'sets'; }
+
   function renderSteppers(){
     document.querySelectorAll('.stepper').forEach(function(el){
       var key = el.getAttribute('data-key');
       var span = el.querySelector('span');
-      if(span) span.textContent = draft[key];
+      if(span) span.textContent = isTimeKey(key) ? fmtTime(draft[key]) : draft[key];
     });
   }
   document.querySelectorAll('.stepper button').forEach(function(btn){
@@ -2256,11 +2260,21 @@
       var wrap = span.closest('.stepper');
       var key = wrap.getAttribute('data-key');
       var lim = LIMITS[key];
+      var timeKey = isTimeKey(key);
       var input = document.createElement('input');
-      input.type = 'number';
       input.className = 'stepper-input';
-      input.min = lim[0]; input.max = lim[1]; input.step = lim[2];
-      input.value = draft[key];
+      if(timeKey){
+        // Minutes:seconds entry — e.g. "3:00" for 180s. Typing a bare
+        // number (no colon) is still read as plain seconds, so "45" works too.
+        input.type = 'text';
+        input.inputMode = 'numeric';
+        input.pattern = '[0-9]*:?[0-9]*';
+        input.value = fmtTime(draft[key]);
+      } else {
+        input.type = 'number';
+        input.min = lim[0]; input.max = lim[1]; input.step = lim[2];
+        input.value = draft[key];
+      }
       wrap.replaceChild(input, span);
       input.focus();
       input.select();
@@ -2268,7 +2282,20 @@
       function commit(){
         if(committed) return;
         committed = true;
-        var val = parseInt(input.value, 10);
+        var val;
+        if(timeKey){
+          var raw = (input.value || '').trim();
+          if(raw.indexOf(':') !== -1){
+            var parts = raw.split(':');
+            var mm = parseInt(parts[0], 10); if(isNaN(mm)) mm = 0;
+            var ss = parseInt(parts[1], 10); if(isNaN(ss)) ss = 0;
+            val = mm*60 + ss;
+          } else {
+            val = parseInt(raw, 10);
+          }
+        } else {
+          val = parseInt(input.value, 10);
+        }
         if(isNaN(val)) val = draft[key];
         val = Math.max(lim[0], Math.min(lim[1], val));
         draft[key] = val;
