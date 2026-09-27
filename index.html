@@ -451,6 +451,29 @@
     background: var(--surface);
     color: var(--text);
   }
+  .stepper .time-input-group{
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .stepper .time-input-group input.stepper-input-part{
+    width: 34px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 15px;
+    font-family: inherit;
+    border: 1px solid var(--accent);
+    border-radius: 9px;
+    padding: 8px 2px;
+    background: var(--surface);
+    color: var(--text);
+  }
+  .stepper .time-input-group .time-colon{
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-dim);
+  }
   .color-row{
     display: flex;
     align-items: center;
@@ -2261,48 +2284,103 @@
       var key = wrap.getAttribute('data-key');
       var lim = LIMITS[key];
       var timeKey = isTimeKey(key);
+
+      if(timeKey){
+        // Two separate boxes (minutes, seconds) instead of one "mm:ss" text
+        // field — a colon isn't reachable from the numeric keypad mobile
+        // browsers show for a text input, and a single field also gets its
+        // whole value selected on focus, making it awkward to edit just one
+        // part. Each box is its own number input the person taps into directly.
+        var group = document.createElement('span');
+        group.className = 'time-input-group';
+
+        var startTotal = draft[key];
+        var mmInput = document.createElement('input');
+        mmInput.type = 'number';
+        mmInput.className = 'stepper-input-part';
+        mmInput.min = 0; mmInput.max = Math.floor(lim[1]/60);
+        mmInput.value = Math.floor(startTotal/60);
+        mmInput.setAttribute('aria-label', 'דקות');
+
+        var colon = document.createElement('span');
+        colon.className = 'time-colon';
+        colon.textContent = ':';
+
+        var ssInput = document.createElement('input');
+        ssInput.type = 'number';
+        ssInput.className = 'stepper-input-part';
+        ssInput.min = 0; ssInput.max = 59;
+        ssInput.value = startTotal % 60;
+        ssInput.setAttribute('aria-label', 'שניות');
+
+        group.appendChild(mmInput);
+        group.appendChild(colon);
+        group.appendChild(ssInput);
+        wrap.replaceChild(group, span);
+        mmInput.focus();
+        mmInput.select();
+
+        var committed = false;
+        function commit(){
+          if(committed) return;
+          committed = true;
+          var mm = parseInt(mmInput.value, 10); if(isNaN(mm)) mm = 0;
+          var ss = parseInt(ssInput.value, 10); if(isNaN(ss)) ss = 0;
+          ss = Math.max(0, Math.min(59, ss));
+          var val = mm*60 + ss;
+          val = Math.max(lim[0], Math.min(lim[1], val));
+          draft[key] = val;
+          wrap.replaceChild(span, group);
+          renderSteppers();
+        }
+        // Committing only when focus leaves both boxes (not when tabbing
+        // from minutes to seconds) — a short delay lets the new focus land
+        // before checking where it went.
+        function scheduleCommitCheck(){
+          setTimeout(function(){
+            if(document.activeElement !== mmInput && document.activeElement !== ssInput){
+              commit();
+            }
+          }, 0);
+        }
+        mmInput.addEventListener('blur', scheduleCommitCheck);
+        ssInput.addEventListener('blur', scheduleCommitCheck);
+        mmInput.addEventListener('keydown', function(e){
+          if(e.key === 'Enter'){ e.preventDefault(); ssInput.focus(); ssInput.select(); }
+          else if(e.key === 'Escape'){ mmInput.blur(); ssInput.blur(); commit(); }
+        });
+        ssInput.addEventListener('keydown', function(e){
+          if(e.key === 'Enter'){ e.preventDefault(); commit(); }
+          else if(e.key === 'Escape'){ mmInput.blur(); ssInput.blur(); commit(); }
+        });
+        // Typing 2 digits into minutes jumps straight to seconds, matching
+        // how a native time picker behaves.
+        mmInput.addEventListener('input', function(){
+          if(mmInput.value.length >= 2){ ssInput.focus(); ssInput.select(); }
+        });
+        return;
+      }
+
       var input = document.createElement('input');
       input.className = 'stepper-input';
-      if(timeKey){
-        // Minutes:seconds entry — e.g. "3:00" for 180s. Typing a bare
-        // number (no colon) is still read as plain seconds, so "45" works too.
-        input.type = 'text';
-        input.inputMode = 'numeric';
-        input.pattern = '[0-9]*:?[0-9]*';
-        input.value = fmtTime(draft[key]);
-      } else {
-        input.type = 'number';
-        input.min = lim[0]; input.max = lim[1]; input.step = lim[2];
-        input.value = draft[key];
-      }
+      input.type = 'number';
+      input.min = lim[0]; input.max = lim[1]; input.step = lim[2];
+      input.value = draft[key];
       wrap.replaceChild(input, span);
       input.focus();
       input.select();
-      var committed = false;
-      function commit(){
-        if(committed) return;
-        committed = true;
-        var val;
-        if(timeKey){
-          var raw = (input.value || '').trim();
-          if(raw.indexOf(':') !== -1){
-            var parts = raw.split(':');
-            var mm = parseInt(parts[0], 10); if(isNaN(mm)) mm = 0;
-            var ss = parseInt(parts[1], 10); if(isNaN(ss)) ss = 0;
-            val = mm*60 + ss;
-          } else {
-            val = parseInt(raw, 10);
-          }
-        } else {
-          val = parseInt(input.value, 10);
-        }
+      var countCommitted = false;
+      function commitCount(){
+        if(countCommitted) return;
+        countCommitted = true;
+        var val = parseInt(input.value, 10);
         if(isNaN(val)) val = draft[key];
         val = Math.max(lim[0], Math.min(lim[1], val));
         draft[key] = val;
         wrap.replaceChild(span, input);
         renderSteppers();
       }
-      input.addEventListener('blur', commit);
+      input.addEventListener('blur', commitCount);
       input.addEventListener('keydown', function(e){
         if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
         else if(e.key === 'Escape'){ input.value = draft[key]; input.blur(); }
