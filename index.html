@@ -1214,7 +1214,15 @@
     color: #fff;
     box-shadow: var(--shadow);
   }
+  .iv-card{ background: var(--surface-2); padding: 12px; }
   .iv-card-top{ display: flex; align-items: center; gap: 8px; }
+  .iv-part{ border-radius: 16px; padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .iv-part-head{ display: flex; align-items: center; justify-content: space-between; }
+  .iv-part-label{ font-size: 14px; font-weight: 800; }
+  .iv-part-tools{ display: flex; align-items: center; gap: 8px; }
+  .iv-part .iv-big-stepper{ padding: 2px 0 0; }
+  .iv-part .iv-big-stepper .iv-big-val{ font-size: 44px; min-width: 110px; }
+  .iv-part .iv-big-stepper button{ width: 40px; height: 40px; }
   /* Plain text, not an input — looks like a label, not an editable box or
      a tappable link. Hold it down to rename (see wireLongPress). */
   .iv-name-label{
@@ -1535,7 +1543,11 @@
       reps: 10,
       color: nextIvColor(),
       soundAssignment: null, // null | 'builtin:<id>' | <trackId number>
-      once: false            // true = only before the very first set (e.g. a warm-up "היכון")
+      once: false,
+      // Each block is work + rest. rest 0 = no rest phase.
+      restSec: 10,
+      restColor: '#35d0a0',
+      restSound: null
     }, opts);
   }
   function makePreset(opts){
@@ -1557,8 +1569,7 @@
       sets: 99,
       setRestSec: 0,
       intervals: [
-        makeInterval({ name:'עבודה', durationSec:50, color:'#ff5c5c' }),
-        makeInterval({ name:'מנוחה', durationSec:10, color:'#35d0a0' })
+        makeInterval({ name:'אינטרוול 1', durationSec:50, color:'#ff5c5c', restSec:10, restColor:'#35d0a0' })
       ]
     });
   }
@@ -1643,6 +1654,24 @@
       currentPreset.intervals = currentPreset.intervals.filter(function(iv){ return !(iv.name === 'היכון' && iv.once); });
     }
   }
+  // Older saves were a flat list (work, rest, work, rest...). Fold each
+  // consecutive pair into one block that carries both work and rest.
+  (function normalizeBlocks(p){
+    var src = p.intervals || [];
+    if(src.length && src.every(function(iv){ return iv.restSec !== undefined; })) return;
+    var loop = src.filter(function(iv){ return !iv.once; });
+    if(!loop.length) loop = src.slice();
+    var out = [];
+    for(var i=0; i<loop.length; i+=2){
+      var w = loop[i], r = loop[i+1];
+      w.type = 'time'; w.once = false;
+      w.restSec = (r && r.type !== 'reps') ? (r.durationSec || 0) : 0;
+      w.restColor = r ? (r.color || '#35d0a0') : '#35d0a0';
+      w.restSound = r ? (r.soundAssignment == null ? null : r.soundAssignment) : null;
+      out.push(w);
+    }
+    p.intervals = out.length ? out : defaultClassicPreset().intervals;
+  })(currentPreset);
   function savePresets(){ try{ localStorage.setItem(WORKOUT_KEY, JSON.stringify(currentPreset)); }catch(e){} }
   savePresets();
 
@@ -1674,13 +1703,18 @@
   function buildPlan(preset){
     var plan = [];
     var sets = Math.max(1, preset.sets||1);
-    var onceIvs = preset.intervals.filter(function(iv){ return iv.once; });
-    var loopIvs = preset.intervals.filter(function(iv){ return !iv.once; });
-    onceIvs.forEach(function(iv){ iv._cueKind = 'prepare'; });
-    loopIvs.forEach(function(iv, idx){ iv._cueKind = idx === 0 ? 'work' : 'rest'; });
-    onceIvs.forEach(function(iv){ pushIntervalPhase(plan, iv, 1, sets); });
+    var steps = [];
+    preset.intervals.forEach(function(iv){
+      iv._cueKind = 'work';
+      steps.push(iv);
+      if((iv.restSec||0) > 0){
+        steps.push({ id: iv.id + '_rest', name: 'מנוחה', type: 'time', durationSec: iv.restSec,
+          color: iv.restColor || '#35d0a0', soundAssignment: iv.restSound == null ? null : iv.restSound,
+          once: false, _cueKind: 'rest' });
+      }
+    });
     for(var s=1; s<=sets; s++){
-      loopIvs.forEach(function(iv){ pushIntervalPhase(plan, iv, s, sets); });
+      steps.forEach(function(iv){ pushIntervalPhase(plan, iv, s, sets); });
       if(s < sets && preset.setRestSec > 0){
         plan.push({ phase:'__setrest__', dur: preset.setRestSec, set:s, sets:sets, iv: SETREST_IV });
       }
@@ -3229,26 +3263,16 @@
   function buildIvCard(iv, idx, total){
     var card = document.createElement('div');
     card.className = 'iv-card';
-    card.style.background = iv.color;
     card.innerHTML =
       '<div class="iv-card-top">' +
         '<button type="button" class="iv-drag-handle" aria-label="גרור לשינוי הסדר" title="גרור לשינוי הסדר"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>' +
         '<span class="iv-name-label"></span>' +
         '<input type="text" class="iv-name-input" maxlength="20" hidden>' +
+        '<button type="button" class="iv-icon-btn iv-dup" title="העתק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+        '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</div>' +
-      '<div class="iv-stepper-wrap"></div>' +
-      '<div class="iv-bottom-row">' +
-        '<div class="iv-color-group">' +
-          '<button type="button" class="iv-color-swatch" aria-label="צבע לאינטרוול"></button>' +
-          '<span class="iv-color-label">צבע</span>' +
-        '</div>' +
-        '<div class="iv-icon-group">' +
-          '<button type="button" class="iv-icon-btn iv-dup" title="שכפל"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
-          '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
-          '<button type="button" class="iv-icon-btn iv-gear" title="צליל"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>' +
-        '</div>' +
-      '</div>' +
-      '';
+      '<div class="iv-part iv-part-work"></div>' +
+      '<div class="iv-part iv-part-rest"></div>';
 
     // The name shows as plain text (not an always-editable box) — hold it
     // down to rename, same long-press-to-edit pattern as everything else.
@@ -3283,22 +3307,49 @@
     nameInput.addEventListener('blur', function(){ closeRename(true); });
     wireLongPress(nameLabel, function(){ return true; }, openRename);
 
-    // Every interval is simply time-based now — no reps mode to pick.
-    var stepperWrap = card.querySelector('.iv-stepper-wrap');
-    stepperWrap.innerHTML = '<div class="iv-big-stepper"><button type="button" data-dir="-1">−</button><span class="iv-big-val"></span><button type="button" data-dir="1">+</button></div>';
-    wireStepper(stepperWrap.querySelector('.iv-big-stepper'), {
-      get:function(){ return iv.durationSec; }, set:function(v){ iv.durationSec = v; savePresets(); }, min:0, max:1800, step:5, isTime:true
+    // Each card has two colored parts: work and rest. Each has its own
+    // time, color and sound. Rest 00:00 means no rest phase.
+    function wirePart(partEl, cfg){
+      partEl.style.background = cfg.getColor();
+      partEl.innerHTML =
+        '<div class="iv-part-head"><span class="iv-part-label"></span>' +
+        '<div class="iv-part-tools">' +
+          '<button type="button" class="iv-color-swatch" aria-label="צבע"></button>' +
+          '<button type="button" class="iv-icon-btn iv-gear" title="צליל"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>' +
+        '</div></div>' +
+        '<div class="iv-big-stepper"><button type="button" data-dir="-1">−</button><span class="iv-big-val"></span><button type="button" data-dir="1">+</button></div>';
+      partEl.querySelector('.iv-part-label').textContent = cfg.label;
+      wireStepper(partEl.querySelector('.iv-big-stepper'), {
+        get:cfg.getSec, set:function(v){ cfg.setSec(v); savePresets(); }, min:0, max:1800, step:5, isTime:true
+      });
+      var sw = partEl.querySelector('.iv-color-swatch');
+      sw.style.background = cfg.getColor();
+      sw.addEventListener('click', function(){
+        openColorPopup(iv.id + cfg.key, function(hex){
+          cfg.setColor(hex);
+          partEl.style.background = hex;
+          sw.style.background = hex;
+          savePresets();
+        }, cfg.getColor());
+      });
+      partEl.querySelector('.iv-gear').addEventListener('click', function(){ openSoundLibrary(cfg.soundTarget); });
+    }
+    wirePart(card.querySelector('.iv-part-work'), {
+      key:'w', label:'עבודה',
+      getColor:function(){ return iv.color; }, setColor:function(h){ iv.color = h; },
+      getSec:function(){ return iv.durationSec; }, setSec:function(v){ iv.durationSec = v; },
+      soundTarget: iv
     });
-
-    var colorSwatch = card.querySelector('.iv-color-swatch');
-    colorSwatch.style.background = iv.color;
-    colorSwatch.addEventListener('click', function(){
-      openColorPopup(iv.id, function(hex){
-        iv.color = hex;
-        card.style.background = hex;
-        colorSwatch.style.background = hex;
-        savePresets();
-      }, iv.color);
+    var restTarget = {
+      get name(){ return 'מנוחה'; },
+      get soundAssignment(){ return iv.restSound; },
+      set soundAssignment(v){ iv.restSound = v; }
+    };
+    wirePart(card.querySelector('.iv-part-rest'), {
+      key:'r', label:'מנוחה',
+      getColor:function(){ return iv.restColor || '#35d0a0'; }, setColor:function(h){ iv.restColor = h; },
+      getSec:function(){ return iv.restSec || 0; }, setSec:function(v){ iv.restSec = v; },
+      soundTarget: restTarget
     });
 
     card.querySelector('.iv-dup').addEventListener('click', function(){ duplicateInterval(iv.id); });
@@ -3350,8 +3401,6 @@
     dragHandle.addEventListener('pointerup', onDragEnd);
     dragHandle.addEventListener('pointercancel', onDragEnd);
 
-    card.querySelector('.iv-gear').addEventListener('click', function(){ openSoundLibrary(iv); });
-
     return card;
   }
 
@@ -3374,7 +3423,7 @@
 
   // "+ הוסף אינטרוול" at the bottom of the list adds a new card.
   document.getElementById('addIvBtn').addEventListener('click', function(){
-    currentPreset.intervals.push(makeInterval({ name: 'אינטרוול ' + (currentPreset.intervals.length+1), color: nextIvColor() }));
+    currentPreset.intervals.push(makeInterval({ name: 'אינטרוול ' + (currentPreset.intervals.length+1), durationSec: 50, restSec: 10, color: nextIvColor() }));
     savePresets();
     renderEditorIntervals();
     var cards = ivListEl.querySelectorAll('.iv-card');
