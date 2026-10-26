@@ -2008,33 +2008,23 @@
     osc.type = wave || 'sine';
     osc.frequency.setValueAtTime(freq, t0);
     gain.gain.setValueAtTime(0, t0);
-    gain.gain.linearRampToValueAtTime(vol, t0 + 0.006);
+    gain.gain.linearRampToValueAtTime(vol, t0 + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
     osc.connect(gain).connect(dest);
     osc.start(t0);
     osc.stop(t0 + durMs/1000 + 0.03);
 
+    // Soft upper partial (sine, not square) for presence without the harsh buzz.
     var osc2 = c.createOscillator();
     var gain2 = c.createGain();
-    osc2.type = 'square';
+    osc2.type = 'sine';
     osc2.frequency.setValueAtTime(freq*2, t0);
     gain2.gain.setValueAtTime(0, t0);
-    gain2.gain.linearRampToValueAtTime(vol*0.55, t0 + 0.006);
+    gain2.gain.linearRampToValueAtTime(vol*0.3, t0 + 0.008);
     gain2.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
     osc2.connect(gain2).connect(dest);
     osc2.start(t0);
     osc2.stop(t0 + durMs/1000 + 0.03);
-
-    var osc3 = c.createOscillator();
-    var gain3 = c.createGain();
-    osc3.type = 'sawtooth';
-    osc3.frequency.setValueAtTime(freq/2, t0);
-    gain3.gain.setValueAtTime(0, t0);
-    gain3.gain.linearRampToValueAtTime(vol*0.35, t0 + 0.006);
-    gain3.gain.exponentialRampToValueAtTime(0.001, t0 + durMs/1000);
-    osc3.connect(gain3).connect(dest);
-    osc3.start(t0);
-    osc3.stop(t0 + durMs/1000 + 0.03);
   }
   function cueTick(){ duckMusic(220); beep(1000, 130, 0.85); }
   // A referee-style whistle for the very moment a workout actually begins
@@ -2133,15 +2123,69 @@
   }
   function classicBeepTone(){ beep(1050, 150, 0.95); }
 
+  // ---------- soft, familiar-sounding cues (synthesized, no files) ----------
+  // Sine partials with a quick soft attack and a natural decay — the usual
+  // recipe for chimes, marimbas and notification "dings". No square/saw
+  // waves, which is what made the older tones harsh.
+  function softNote(freq, dur, vol, partials, delay){
+    var c = ctx(); if(!c) return;
+    var t0 = c.currentTime + (delay || 0), dest = comp(c);
+    partials.forEach(function(pt){
+      var osc = c.createOscillator(), g = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * pt[0], t0);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol * pt[1], t0 + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g).connect(dest);
+      osc.start(t0); osc.stop(t0 + dur + 0.03);
+    });
+  }
+  function dingTone(){ softNote(1175, 1.1, 0.8, [[1,1],[2.76,0.16],[5.4,0.05]]); }
+  function dingDongTone(){
+    softNote(880, 0.9, 0.75, [[1,1],[2.76,0.14]]);
+    softNote(659, 1.2, 0.75, [[1,1],[2.76,0.14]], 0.32);
+  }
+  function marimbaTone(){ softNote(784, 0.5, 0.85, [[1,1],[4,0.22],[9.2,0.05]]); }
+  function triangleTone(){ softNote(1568, 1.4, 0.7, [[1,1],[2.7,0.3],[4.1,0.15],[6.3,0.06]]); }
+  function bubbleTone(){
+    var c = ctx(); if(!c) return;
+    var t0 = c.currentTime, dest = comp(c);
+    var osc = c.createOscillator(), g = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, t0);
+    osc.frequency.exponentialRampToValueAtTime(980, t0 + 0.09);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.9, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.16);
+    osc.connect(g).connect(dest);
+    osc.start(t0); osc.stop(t0 + 0.2);
+  }
+  function softWatchTone(){
+    softNote(988, 0.1, 0.8, [[1,1],[2,0.18]]);
+    softNote(988, 0.1, 0.8, [[1,1],[2,0.18]], 0.16);
+  }
+  function boxingBellTone(){
+    softNote(740, 1.0, 0.8, [[1,1],[2.4,0.3],[3.9,0.12]]);
+    softNote(740, 1.2, 0.8, [[1,1],[2.4,0.3],[3.9,0.12]], 0.42);
+  }
+
   // Each built-in sound also carries a color: while its phase is active,
   // that color takes over the screen (see applyFloodForPhase below).
   var BUILTIN_SOUNDS = [
-    { id:'beep',    name:'ביפ קלאסי', color:'#34d399', play: classicBeepTone },
-    { id:'double',  name:'ביפ כפול',  color:'#2dd4bf', play: doubleBeepTone },
-    { id:'bell',    name:'פעמון',     color:'#60a5fa', play: bellTone },
-    { id:'whistle', name:'שריקה',     color:'#fbbf24', play: whistleTone },
-    { id:'buzzer',  name:'באזר',      color:'#fb7185', play: buzzTone },
-    { id:'siren',   name:'סירנה',     color:'#f472b6', play: sirenTone }
+    { id:'ding',    name:'דינג',          group:'עדינים', color:'#60a5fa', play: dingTone },
+    { id:'dingdong',name:'דינג-דונג',     group:'עדינים', color:'#818cf8', play: dingDongTone },
+    { id:'marimba', name:'מרימבה',        group:'עדינים', color:'#34d399', play: marimbaTone },
+    { id:'triangle',name:'טריאנגל',       group:'עדינים', color:'#2dd4bf', play: triangleTone },
+    { id:'bubble',  name:'בועה',          group:'עדינים', color:'#a78bfa', play: bubbleTone },
+    { id:'watch',   name:'שעון',          group:'עדינים', color:'#fbbf24', play: softWatchTone },
+    { id:'boxbell', name:'פעמון אגרוף',   group:'עדינים', color:'#fb923c', play: boxingBellTone },
+    { id:'beep',    name:'ביפ קלאסי', group:'חזקים', color:'#34d399', play: classicBeepTone },
+    { id:'double',  name:'ביפ כפול', group:'חזקים',  color:'#2dd4bf', play: doubleBeepTone },
+    { id:'bell',    name:'פעמון', group:'חזקים',     color:'#60a5fa', play: bellTone },
+    { id:'whistle', name:'שריקה', group:'חזקים',     color:'#fbbf24', play: whistleTone },
+    { id:'buzzer',  name:'באזר', group:'חזקים',      color:'#fb7185', play: buzzTone },
+    { id:'siren',   name:'סירנה', group:'חזקים',     color:'#f472b6', play: sirenTone }
   ];
   function builtinById(id){ return BUILTIN_SOUNDS.filter(function(s){ return s.id === id; })[0]; }
   // Plays a built-in sound at its saved pitch (used by the phase cue and
@@ -2715,7 +2759,7 @@
       list.appendChild(row);
     }
     addRow(null, 'ללא צליל נוסף (רק ביפים קצרים)');
-    BUILTIN_SOUNDS.forEach(function(sn, i){ addRow('builtin:' + sn.id, sn.name, i === 0 ? 'צלילים מובנים' : null, sn); });
+    BUILTIN_SOUNDS.forEach(function(sn, i){ addRow('builtin:' + sn.id, sn.name, (i === 0 || BUILTIN_SOUNDS[i-1].group !== sn.group) ? ('צלילים ' + sn.group) : null, sn); });
     tracks.forEach(function(t, i){ addRow(t.id, t.name, i === 0 ? 'השירים שהעלית' : null); });
   }
 
