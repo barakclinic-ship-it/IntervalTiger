@@ -277,23 +277,6 @@
     gap: 14px;
     padding-bottom: 6px;
   }
-  .color-list{ display: flex; flex-direction: column; gap: 10px; }
-  .color-list-row{
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 4px 0;
-  }
-  .color-list-swatch{
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.25);
-    cursor: pointer;
-    flex-shrink: 0;
-    padding: 0;
-  }
-  .color-list-name{ font-size: 15px; font-weight: 600; }
   .phase-pill{
     font-size: 13px;
     font-weight: 600;
@@ -1349,6 +1332,18 @@
     font-family: inherit;
   }
   .iv-sound-panel select option{ color: #111; }
+  .iv-sound-library-btn{
+    flex-shrink: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.4);
+    background: transparent;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+  }
   .add-iv-btn{
     width: 100%;
     border: 1px dashed var(--border);
@@ -1378,17 +1373,6 @@
       </button>
       <button class="header-icon" id="installBtn" aria-label="התקן על המסך הבית" title="התקן על המסך הבית" hidden>
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
-      </button>
-    </div>
-    <div class="header-actions">
-      <button class="header-icon" id="addIvBtn" aria-label="הוסף אינטרוול" title="הוסף אינטרוול">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-      <button class="header-icon" id="soundIconBtn" aria-label="צלילים" title="מאגר צלילים ושירים">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M16.2 8.8a5 5 0 0 1 0 6.4"/><path d="M18.9 6.1a9 9 0 0 1 0 11.8"/></svg>
-      </button>
-      <button class="header-icon" id="colorIconBtn" aria-label="צבעים" title="צבעי האינטרוולים">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 9-9c0 1.4-.5 2.4-1.7 2.4h-2.4c-1 0-1.5.9-1.5 1.7 0 .5.2.8.4 1.2.2.3.3.6.3 1 0 1.5-1.4 2.7-4.1 2.7z"/><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="7.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="17" cy="11.5" r="1.1" fill="currentColor" stroke="none"/></svg>
       </button>
     </div>
   </header>
@@ -1433,6 +1417,7 @@
         </div>
       </div>
       <div class="iv-list" id="ivList"></div>
+      <button type="button" class="add-iv-btn" id="addIvBtn">+ הוסף אינטרוול</button>
     </div>
 
     <div class="controls">
@@ -1490,17 +1475,6 @@
   </div>
 </div>
 
-<div class="settings-overlay" id="colorListOverlay" hidden>
-  <div class="settings-sheet">
-    <div class="settings-title">
-      <span>צבעי האינטרוולים</span>
-      <button class="iconbtn" id="closeColorListBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
-    <div class="settings-scroll">
-      <div class="color-list" id="colorListBody"></div>
-    </div>
-  </div>
-</div>
 
 <div class="install-guide-overlay" id="iosInstallOverlay" hidden>
   <div class="install-guide-card">
@@ -3193,6 +3167,16 @@
     savePresets();
     renderEditorIntervals();
   }
+  function duplicateInterval(id){
+    var i = ivIndexOf(id);
+    if(i < 0) return;
+    var copy = Object.assign({}, currentPreset.intervals[i]);
+    copy.id = uid('iv');
+    copy.name = copy.name + ' (עותק)';
+    currentPreset.intervals.splice(i+1, 0, copy);
+    savePresets();
+    renderEditorIntervals();
+  }
 
   function buildIvCard(iv, idx, total){
     var card = document.createElement('div');
@@ -3211,11 +3195,15 @@
           '<span class="iv-color-label">צבע</span>' +
         '</div>' +
         '<div class="iv-icon-group">' +
+          '<button type="button" class="iv-icon-btn iv-dup" title="שכפל"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
           '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
           '<button type="button" class="iv-icon-btn iv-gear" title="צליל לאינטרוול"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 16.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>' +
         '</div>' +
       '</div>' +
-      '<div class="iv-sound-panel" hidden><select class="soundSelect"></select></div>';
+      '<div class="iv-sound-panel" hidden>' +
+        '<select class="soundSelect"></select>' +
+        '<button type="button" class="iv-sound-library-btn" title="הוספת/הקלטת צלילים ושירים חדשים">+ מאגר</button>' +
+      '</div>';
 
     // The name shows as plain text (not an always-editable box) — hold it
     // down to rename, same long-press-to-edit pattern as everything else.
@@ -3268,6 +3256,7 @@
       }, iv.color);
     });
 
+    card.querySelector('.iv-dup').addEventListener('click', function(){ duplicateInterval(iv.id); });
     card.querySelector('.iv-del').addEventListener('click', function(){ deleteInterval(iv.id); });
 
     // Drag-to-reorder: hold the handle and drag the card up/down past its
@@ -3326,6 +3315,7 @@
       savePresets();
     });
     gearBtn.addEventListener('click', function(){ soundPanel.hidden = !soundPanel.hidden; });
+    soundPanel.querySelector('.iv-sound-library-btn').addEventListener('click', openSoundLibrary);
 
     return card;
   }
@@ -3347,7 +3337,7 @@
   });
   renderEditorIntervals();
 
-  // The header's "+" adds a new interval card straight to the list.
+  // "+ הוסף אינטרוול" at the bottom of the list adds a new card.
   document.getElementById('addIvBtn').addEventListener('click', function(){
     currentPreset.intervals.push(makeInterval({ name: 'אינטרוול ' + (currentPreset.intervals.length+1), color: nextIvColor() }));
     savePresets();
@@ -3357,52 +3347,17 @@
     if(last) last.scrollIntoView({ behavior:'smooth', block:'center' });
   });
 
-  // ---------- sound library popup (upload/record tracks) ----------
+  // ---------- sound library popup (upload/record tracks) — opened from
+  // inside a card's own sound panel (see buildIvCard), not from the header ----------
   var soundLibraryOverlay = document.getElementById('soundLibraryOverlay');
-  var soundIconBtn = document.getElementById('soundIconBtn');
   var closeSoundLibraryBtn = document.getElementById('closeSoundLibraryBtn');
   function openSoundLibrary(){
     renderSoundSelects();
     soundLibraryOverlay.hidden = false;
   }
   function closeSoundLibrary(){ soundLibraryOverlay.hidden = true; }
-  soundIconBtn.addEventListener('click', openSoundLibrary);
   closeSoundLibraryBtn.addEventListener('click', closeSoundLibrary);
   soundLibraryOverlay.addEventListener('click', function(e){ if(e.target === soundLibraryOverlay) closeSoundLibrary(); });
-
-  // ---------- color-assignment popup (one swatch per interval, each tap
-  // reopens the existing single-color picker for that interval) ----------
-  var colorListOverlay = document.getElementById('colorListOverlay');
-  var colorListBody = document.getElementById('colorListBody');
-  var colorIconBtn = document.getElementById('colorIconBtn');
-  var closeColorListBtn = document.getElementById('closeColorListBtn');
-  function renderColorList(){
-    colorListBody.innerHTML = '';
-    currentPreset.intervals.forEach(function(iv){
-      var row = document.createElement('div');
-      row.className = 'color-list-row';
-      row.innerHTML =
-        '<button type="button" class="color-list-swatch" aria-label="צבע ל' + iv.name + '"></button>' +
-        '<span class="color-list-name"></span>';
-      row.querySelector('.color-list-name').textContent = iv.name;
-      var swatch = row.querySelector('.color-list-swatch');
-      swatch.style.background = iv.color;
-      swatch.addEventListener('click', function(){
-        openColorPopup(iv.id, function(hex){
-          iv.color = hex;
-          swatch.style.background = hex;
-          savePresets();
-          renderEditorIntervals();
-        }, iv.color);
-      });
-      colorListBody.appendChild(row);
-    });
-  }
-  function openColorList(){ renderColorList(); colorListOverlay.hidden = false; }
-  function closeColorList(){ colorListOverlay.hidden = true; }
-  colorIconBtn.addEventListener('click', openColorList);
-  closeColorListBtn.addEventListener('click', closeColorList);
-  colorListOverlay.addEventListener('click', function(e){ if(e.target === colorListOverlay) closeColorList(); });
 
   // ---------- share ----------
   var shareBtn = document.getElementById('shareBtn');
