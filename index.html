@@ -2252,7 +2252,24 @@
   function builtinById(id){ return BUILTIN_SOUNDS.filter(function(s){ return s.id === id; })[0]; }
   // Plays a built-in sound at its saved pitch (used by the phase cue and
   // by the preview button in the sound window).
+  // Asks the phone to lower other apps' audio (YouTube Music etc.) while a
+  // cue plays, via the Audio Session API ("transient" = play on top of other
+  // audio, which usually ducks it). Best-effort: only browsers that support
+  // the API react to it; elsewhere it silently does nothing.
+  var duckOthersHandle = null;
+  function duckOtherApps(ms){
+    try{
+      if(!navigator.audioSession) return;
+      navigator.audioSession.type = 'transient';
+      if(duckOthersHandle) clearTimeout(duckOthersHandle);
+      duckOthersHandle = setTimeout(function(){
+        duckOthersHandle = null;
+        try{ navigator.audioSession.type = 'auto'; }catch(e){}
+      }, ms + 400);
+    }catch(e){}
+  }
   function playBuiltinSound(snd){
+    duckOtherApps(1800);
     pitchCents = getPitch(snd.id);
     try{ snd.play(); }catch(e){}
     pitchCents = 0;
