@@ -370,7 +370,7 @@
      a text-stroke traces over the letterforms to thicken them, which is
      what actually makes the digits look bold/heavy like the reference. */
   .stage .ring-center .time{
-    font-size: min(172px, 34vw);
+    font-size: min(184px, 35vw);
     -webkit-text-stroke: 5px currentColor;
     text-stroke: 5px currentColor;
     cursor: pointer;
@@ -499,6 +499,34 @@
     flex-direction: column;
     gap: 14px;
     width: 100%;
+  }
+  .volume-row{
+    display: flex; align-items: center; gap: 10px;
+    position: fixed; left: 18px; right: 18px; z-index: 6;
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    width: auto; color: #fff; opacity: 1; gap: 14px;
+  }
+  .volume-row[hidden]{ display: none; }
+  .volume-row svg{ width: 30px; height: 30px; flex-shrink: 0; }
+  .volume-row input[type=range]{
+    flex: 1; min-width: 0; height: 36px; margin: 0;
+    -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+    touch-action: pan-y;
+  }
+  .volume-row input[type=range]::-webkit-slider-runnable-track{
+    height: 10px; border-radius: 999px; background: rgba(255,255,255,.38);
+  }
+  .volume-row input[type=range]::-moz-range-track{
+    height: 10px; border-radius: 999px; background: rgba(255,255,255,.38);
+  }
+  .volume-row input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance: none; appearance: none;
+    width: 30px; height: 30px; margin-top: -10px; border-radius: 50%;
+    background: #fff; border: none; box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .volume-row input[type=range]::-moz-range-thumb{
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #fff; border: none; box-shadow: 0 2px 8px rgba(0,0,0,.35);
   }
   .controls-row{
     display: flex;
@@ -1456,6 +1484,10 @@
         <button class="btn ghost" id="restartRoundBtn" disabled><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg><span>מהתחלת הסבב</span></button>
         <button class="btn ghost" id="skipBtn" disabled><span>דילוג</span><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M6 5l8 7-8 7V5z"/><rect x="16" y="5" width="2.4" height="14"/></svg></button>
       </div>
+      <div class="volume-row" id="volumeRow" hidden>
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <input type="range" id="volumeSlider" min="0" max="100" step="1" aria-label="עוצמת קול">
+      </div>
     </div>
   </div>
 </div>
@@ -1931,6 +1963,12 @@
   // Per-sound pitch (in cents, 0 = original). Applied as oscillator detune
   // only while a built-in sound plays, so the short phase beeps stay as-is.
   var pitchCents = 0;
+  // Master volume (0..1) for the beeps/sounds and the background track.
+  // Slider position is squared so the middle of the bar feels like half.
+  var VOL_KEY = 'tiger_volume_v1';
+  var userVol = 1;
+  try{ var sv = parseFloat(localStorage.getItem(VOL_KEY)); if(sv >= 0 && sv <= 1) userVol = sv; }catch(e){}
+  function volGain(){ return 1.2 * userVol * userVol; }
   var PITCH_KEY = 'tiger_pitch_v1';
   var soundPitch = {};
   try{ soundPitch = JSON.parse(localStorage.getItem(PITCH_KEY) || '{}') || {}; }catch(e){ soundPitch = {}; }
@@ -1966,7 +2004,7 @@
       // signal near full scale is already as loud as the phone can play;
       // more "loudness" only came from squashing the waveform.
       masterMakeup = c.createGain();
-      masterMakeup.gain.setValueAtTime(1.2, c.currentTime);
+      masterMakeup.gain.setValueAtTime(volGain(), c.currentTime);
       masterCompressor = c.createDynamicsCompressor();
       try{
         masterCompressor.threshold.setValueAtTime(-1, c.currentTime);
@@ -2369,8 +2407,18 @@
   var countdownView = document.getElementById('countdownView');
   var idleBuilder = document.getElementById('idleBuilder');
   function isIdleNow(){ return stepIndex === 0 && !running && phaseRemainingMs === null; }
+  var volumeRow = document.getElementById('volumeRow');
+  var volumeSlider = document.getElementById('volumeSlider');
+  volumeSlider.value = Math.round(userVol * 100);
+  volumeSlider.addEventListener('input', function(){
+    userVol = Math.max(0, Math.min(1, parseInt(volumeSlider.value, 10) / 100));
+    try{ localStorage.setItem(VOL_KEY, String(userVol)); }catch(e){}
+    if(masterMakeup && actx){ masterMakeup.gain.setTargetAtTime(volGain(), actx.currentTime, 0.01); }
+    try{ if(duckRestoreHandle){ duckBaseVolume = userVol; } else { audioEl.volume = userVol; } }catch(e){}
+  });
   function updateIdleBuilderVisibility(){
     var idle = isIdleNow();
+    volumeRow.hidden = idle;
     countdownView.hidden = idle;
     idleBuilder.hidden = !idle;
   }
@@ -2578,6 +2626,7 @@
   var currentSegStart = null;
   var currentSegEnd = null;
   var audioEl = new Audio();
+  try{ audioEl.volume = userVol; }catch(e){}
   audioEl.preload = 'metadata';
   // Full-track looping is done manually (see 'ended' below) instead of via
   // the native `loop` attribute. Recorded clips (MediaRecorder) and some
