@@ -1972,6 +1972,30 @@
     osc3.stop(t0 + durMs/1000 + 0.03);
   }
   function cueTick(){ duckMusic(220); beep(1000, 130, 0.85); }
+  // A referee-style whistle for the very moment a workout actually begins
+  // (pressing "התחל" from idle) — a fast flutter between two close, high
+  // pitches reads as a whistle trill rather than a plain tone.
+  function cueStartWhistle(){
+    var c = ctx();
+    if(!c) return;
+    duckMusic(550);
+    var t0 = c.currentTime;
+    var dest = comp(c);
+    var osc = c.createOscillator();
+    var gain = c.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(2900, t0);
+    for(var i=1; i<=15; i++){
+      osc.frequency.setValueAtTime(i % 2 ? 3300 : 2900, t0 + i*0.028);
+    }
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(0.8, t0 + 0.02);
+    gain.gain.setValueAtTime(0.8, t0 + 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
+    osc.connect(gain).connect(dest);
+    osc.start(t0);
+    osc.stop(t0 + 0.55);
+  }
   function cuePhaseStart(phase){
     duckMusic(phase === 'done' ? 900 : 500);
     if(phase === 'work') { beep(1200, 260, 1); }
@@ -2053,7 +2077,7 @@
   function builtinById(id){ return BUILTIN_SOUNDS.filter(function(s){ return s.id === id; })[0]; }
 
   // ---------- transport ----------
-  function goToStep(idx, autoStartTimer){
+  function goToStep(idx, autoStartTimer, skipCue){
     stepIndex = idx;
     var step = plan[stepIndex];
     if(!step){ finishWorkout(); return; }
@@ -2065,7 +2089,7 @@
     updateRoundsDisplay(step);
     updateRunCounter(step);
     var cueKind = (step.iv && step.iv._cueKind) || 'work';
-    cuePhaseStart(cueKind);
+    if(!skipCue) cuePhaseStart(cueKind);
     vibrate(cueKind === 'work' ? [40] : [15,60,15]);
     lastBeepSecond = null;
     if(autoStartTimer && step.reps == null){ phaseEndAt = Date.now() + step.dur*1000; }
@@ -2409,7 +2433,8 @@
         inProgress = true;
         plan = buildPlan(currentPreset);
         stepIndex = 0;
-        goToStep(0, true);
+        cueStartWhistle();
+        goToStep(0, true, true); // skipCue: the whistle above replaces the first interval's normal cue
       } else if(phaseRemainingMs !== null){
         phaseEndAt = Date.now() + phaseRemainingMs;
         phaseRemainingMs = null;
