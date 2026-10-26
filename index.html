@@ -263,6 +263,11 @@
     align-self: stretch;
     width: 100%;
     max-width: 440px;
+    /* .stage is a fixed, full-viewport layer, so its own top padding does
+       not actually clear the header (which sits in normal flow above it) —
+       without this, the first row here draws right under/behind the
+       header icons instead of below them. */
+    margin-top: 46px;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
@@ -1227,6 +1232,21 @@
     box-shadow: var(--shadow);
   }
   .iv-card-top{ display: flex; align-items: center; gap: 8px; }
+  /* Plain text, not an input — looks like a label, not an editable box or
+     a tappable link. Hold it down to rename (see wireLongPress). */
+  .iv-name-label{
+    flex: 1;
+    min-width: 0;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 2px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+  }
   .iv-name-input{
     flex: 1;
     min-width: 0;
@@ -1555,7 +1575,6 @@
       sets: 99,
       setRestSec: 0,
       intervals: [
-        makeInterval({ name:'היכון', durationSec:5, color:'#ffc247', once:true }),
         makeInterval({ name:'עבודה', durationSec:50, color:'#ff5c5c' }),
         makeInterval({ name:'מנוחה', durationSec:10, color:'#35d0a0' })
       ]
@@ -1631,6 +1650,16 @@
       }
     }catch(e){}
     currentPreset = legacyPreset || migrateOldSettingsToPreset() || defaultClassicPreset();
+  }
+  // One-time cleanup: the built-in default used to include a "היכון" warm-up
+  // step before the first set — no longer wanted, so drop it from whatever
+  // was already saved (a workout the person built themselves, with its own
+  // intentional "היכון" step, is left alone).
+  if(currentPreset.intervals && currentPreset.intervals.length > 1){
+    var hadPrepStep = currentPreset.intervals.some(function(iv){ return iv.name === 'היכון' && iv.once; });
+    if(hadPrepStep){
+      currentPreset.intervals = currentPreset.intervals.filter(function(iv){ return !(iv.name === 'היכון' && iv.once); });
+    }
   }
   function savePresets(){ try{ localStorage.setItem(WORKOUT_KEY, JSON.stringify(currentPreset)); }catch(e){} }
   savePresets();
@@ -3198,7 +3227,8 @@
     card.style.background = iv.color;
     card.innerHTML =
       '<div class="iv-card-top">' +
-        '<input type="text" class="iv-name-input" maxlength="20">' +
+        '<span class="iv-name-label"></span>' +
+        '<input type="text" class="iv-name-input" maxlength="20" hidden>' +
         '<div class="iv-move-btns">' +
           '<button type="button" class="iv-up" aria-label="הזז למעלה">▲</button>' +
           '<button type="button" class="iv-down" aria-label="הזז למטה">▼</button>' +
@@ -3223,11 +3253,38 @@
       '</div>' +
       '<div class="iv-sound-panel" hidden><select class="soundSelect"></select></div>';
 
+    // The name shows as plain text (not an always-editable box) — hold it
+    // down to rename, same long-press-to-edit pattern as everything else.
+    var nameLabel = card.querySelector('.iv-name-label');
     var nameInput = card.querySelector('.iv-name-input');
-    nameInput.value = iv.name;
-    function commitName(){ iv.name = nameInput.value.trim() || iv.name; nameInput.value = iv.name; savePresets(); }
-    nameInput.addEventListener('blur', commitName);
-    nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ nameInput.blur(); } });
+    nameLabel.textContent = iv.name;
+    var renamingNow = false;
+    function openRename(){
+      if(renamingNow) return;
+      renamingNow = true;
+      nameInput.value = iv.name;
+      nameLabel.hidden = true;
+      nameInput.hidden = false;
+      nameInput.focus();
+      nameInput.select();
+    }
+    function closeRename(commit){
+      if(!renamingNow) return;
+      renamingNow = false;
+      if(commit){
+        iv.name = nameInput.value.trim() || iv.name;
+        savePresets();
+      }
+      nameLabel.textContent = iv.name;
+      nameInput.hidden = true;
+      nameLabel.hidden = false;
+    }
+    nameInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); closeRename(true); }
+      else if(e.key === 'Escape'){ closeRename(false); }
+    });
+    nameInput.addEventListener('blur', function(){ closeRename(true); });
+    wireLongPress(nameLabel, function(){ return true; }, openRename);
 
     var upBtn = card.querySelector('.iv-up'), downBtn = card.querySelector('.iv-down');
     upBtn.disabled = idx === 0;
@@ -3312,11 +3369,7 @@
     renderEditorIntervals();
     var cards = ivListEl.querySelectorAll('.iv-card');
     var last = cards[cards.length-1];
-    if(last){
-      last.scrollIntoView({ behavior:'smooth', block:'center' });
-      var nameField = last.querySelector('.iv-name-input');
-      if(nameField){ nameField.focus(); nameField.select(); }
-    }
+    if(last) last.scrollIntoView({ behavior:'smooth', block:'center' });
   });
 
   // ---------- sound library popup (upload/record tracks) ----------
