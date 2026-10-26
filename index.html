@@ -3317,7 +3317,16 @@
     if(i < 0) return;
     var copy = Object.assign({}, currentPreset.intervals[i]);
     copy.id = uid('iv');
-    copy.name = copy.name + ' (עותק)';
+    // Name the copy with the next number: "אינטרוול 2" -> "אינטרוול 3".
+    var m = /^(.*?)\s*(\d+)$/.exec(copy.name);
+    var base = m ? m[1] : copy.name;
+    var maxN = m ? parseInt(m[2], 10) : 1;
+    currentPreset.intervals.forEach(function(x){
+      var mm = /^(.*?)\s*(\d+)$/.exec(x.name);
+      if(mm && mm[1] === base) maxN = Math.max(maxN, parseInt(mm[2], 10));
+      else if(x.name === base) maxN = Math.max(maxN, 1);
+    });
+    copy.name = (base ? base + ' ' : '') + (maxN + 1);
     currentPreset.intervals.splice(i+1, 0, copy);
     savePresets();
     renderEditorIntervals();
