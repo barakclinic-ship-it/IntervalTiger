@@ -10,6 +10,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TIGER">
+<!-- Without this, iOS Safari "format detection" auto-links anything that
+     looks like a phone number or date (e.g. a plain "00:30" label) into a
+     blue, underlined tappable link — even on static text that never
+     changes and isn't meant to be tapped at all. -->
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png">
@@ -386,6 +391,65 @@
     font-size: min(60px, 12vw);
     color: rgba(255,255,255,.7);
   }
+
+  /* Idle-only quick-edit chips (sets / rest) — smaller siblings of the main
+     countdown number, same long-press-to-edit idea, same no-chip/no-frame
+     language, just scaled down so they read as secondary. */
+  .idle-quick-stats{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+  }
+  .iqs-item{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .iqs-item.disabled{ opacity: .35; cursor: default; }
+  .iqs-sep{ width: 1px; height: 30px; background: rgba(255,255,255,.18); }
+  .iqs-val{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: 30px;
+    line-height: 1;
+    color: #fff;
+    -webkit-text-stroke: 1.2px currentColor;
+    font-variant-numeric: tabular-nums;
+  }
+  .iqs-label{
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.6);
+  }
+  .iqs-rest-edit{ display: inline-flex; align-items: center; gap: 2px; font-family: 'Bebas Neue', 'Inter', sans-serif; font-size: 26px; color: #fff; }
+  .iqs-input{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: 26px;
+    -webkit-text-stroke: 1px currentColor;
+    color: #fff;
+    background: rgba(0,0,0,.25);
+    border: 2px solid rgba(255,255,255,.6);
+    border-radius: 8px;
+    text-align: center;
+    line-height: 1;
+    padding: 2px 0;
+    width: 2.1em;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .iqs-rest-edit .iqs-input{ width: 1.6em; }
+  .iqs-input::-webkit-outer-spin-button,
+  .iqs-input::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
+
   .now-playing{
     font-size: 12px;
     color: var(--text-dim);
@@ -1278,6 +1342,27 @@
     </div>
 
     <div class="phase-pill idle big" id="phasePill">מוכן להתחיל</div>
+
+    <!-- Quick-edit chips, visible only on the idle "ready to start" screen:
+         long-press סטים to change the number of sets, or מנוחה to change
+         the rest interval's time — the same long-press-to-edit pattern as
+         the main countdown number, without opening settings. -->
+    <div class="idle-quick-stats" id="idleQuickStats" hidden>
+      <div class="iqs-item" id="iqsSetsItem">
+        <span class="iqs-val" id="iqsSetsVal">—</span>
+        <input type="number" class="iqs-input" id="iqsSetsInput" min="1" max="99" hidden aria-label="מספר סטים">
+        <span class="iqs-label">סטים</span>
+      </div>
+      <div class="iqs-sep"></div>
+      <div class="iqs-item" id="iqsRestItem">
+        <span class="iqs-val" id="iqsRestVal">—:—</span>
+        <span class="iqs-rest-edit" id="iqsRestEdit" hidden>
+          <input type="number" class="iqs-input" id="iqsRestMin" min="0" max="99" aria-label="דקות מנוחה">:<input type="number" class="iqs-input" id="iqsRestSec" min="0" max="59" aria-label="שניות מנוחה">
+        </span>
+        <span class="iqs-label">מנוחה</span>
+      </div>
+    </div>
+
     <div class="rounds" id="roundsDisplay">—</div>
 
     <div class="now-playing" id="nowPlaying"></div>
@@ -1689,6 +1774,7 @@
     updateRunCounter(step);
     nowPlaying.textContent = '';
     nowPlaying.className = 'now-playing';
+    updateIdleQuickStats();
   }
 
   function stepLabel(step){
@@ -2012,8 +2098,6 @@
   var timeEditGroup = document.getElementById('timeEditGroup');
   var timeEditMin = document.getElementById('timeEditMin');
   var timeEditSec = document.getElementById('timeEditSec');
-  var longPressTimer = null;
-  var longPressStartXY = null;
   var editingTime = false;
 
   function currentRemainingSec(){
@@ -2097,27 +2181,138 @@
     }, 0);
   });
 
-  function cancelLongPress(){
-    if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
-    longPressStartXY = null;
+  // Shared long-press wiring: any element can be made "hold to edit" by
+  // passing it, a canEdit() guard, and what to do once the hold fires.
+  // Used by the main countdown number and by the sets/rest quick-stats below.
+  function wireLongPress(el, canEdit, onOpen){
+    var timer = null, startXY = null;
+    function cancel(){ if(timer){ clearTimeout(timer); timer = null; } startXY = null; }
+    el.addEventListener('pointerdown', function(e){
+      if(!canEdit()) return;
+      startXY = { x: e.clientX, y: e.clientY };
+      timer = setTimeout(function(){
+        timer = null;
+        vibrate([20]);
+        onOpen();
+      }, 550);
+    });
+    el.addEventListener('pointermove', function(e){
+      if(!startXY) return;
+      var dx = e.clientX - startXY.x, dy = e.clientY - startXY.y;
+      if(Math.sqrt(dx*dx + dy*dy) > 12) cancel();
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(function(evt){
+      el.addEventListener(evt, cancel);
+    });
   }
-  timeDisplay.addEventListener('pointerdown', function(e){
-    if(!canEditRemainingTime()) return;
-    longPressStartXY = { x: e.clientX, y: e.clientY };
-    longPressTimer = setTimeout(function(){
-      longPressTimer = null;
-      vibrate([20]);
-      openTimeEdit();
-    }, 550);
+  wireLongPress(timeDisplay, canEditRemainingTime, openTimeEdit);
+
+  // ---------- idle-only quick stats: סטים (sets) and מנוחה (rest) ----------
+  var idleQuickStats = document.getElementById('idleQuickStats');
+  var iqsSetsItem = document.getElementById('iqsSetsItem');
+  var iqsSetsVal = document.getElementById('iqsSetsVal');
+  var iqsSetsInput = document.getElementById('iqsSetsInput');
+  var iqsRestItem = document.getElementById('iqsRestItem');
+  var iqsRestVal = document.getElementById('iqsRestVal');
+  var iqsRestEdit = document.getElementById('iqsRestEdit');
+  var iqsRestMin = document.getElementById('iqsRestMin');
+  var iqsRestSec = document.getElementById('iqsRestSec');
+  var setsEditing = false, restEditing = false;
+
+  function isIdleNow(){ return stepIndex === 0 && !running && phaseRemainingMs === null; }
+  function restInterval(){ return currentPreset.intervals && currentPreset.intervals[1]; }
+
+  function updateIdleQuickStats(){
+    var idle = isIdleNow();
+    idleQuickStats.hidden = !idle;
+    if(!idle) return;
+    iqsSetsVal.textContent = currentPreset.sets;
+    var iv = restInterval();
+    var hasRest = !!(iv && iv.type !== 'reps');
+    iqsRestItem.classList.toggle('disabled', !hasRest);
+    iqsRestVal.textContent = hasRest ? fmtTime(iv.durationSec || 0) : '—:—';
+  }
+
+  function canEditSets(){ return isIdleNow(); }
+  function openSetsEdit(){
+    if(setsEditing || !canEditSets()) return;
+    setsEditing = true;
+    iqsSetsInput.value = currentPreset.sets;
+    iqsSetsVal.hidden = true;
+    iqsSetsInput.hidden = false;
+    iqsSetsInput.focus();
+    iqsSetsInput.select();
+  }
+  function closeSetsEdit(commit){
+    if(!setsEditing) return;
+    setsEditing = false;
+    if(commit){
+      var v = parseInt(iqsSetsInput.value, 10);
+      if(!isNaN(v)){
+        currentPreset.sets = Math.max(1, Math.min(99, v));
+        savePresets();
+        plan = buildPlan(currentPreset);
+      }
+    }
+    iqsSetsInput.hidden = true;
+    iqsSetsVal.hidden = false;
+    renderIdleFrame();
+  }
+  iqsSetsInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); closeSetsEdit(true); }
+    else if(e.key === 'Escape'){ closeSetsEdit(false); }
   });
-  timeDisplay.addEventListener('pointermove', function(e){
-    if(!longPressStartXY) return;
-    var dx = e.clientX - longPressStartXY.x, dy = e.clientY - longPressStartXY.y;
-    if(Math.sqrt(dx*dx + dy*dy) > 12) cancelLongPress();
+  iqsSetsInput.addEventListener('focusout', function(){
+    setTimeout(function(){ if(document.activeElement !== iqsSetsInput) closeSetsEdit(true); }, 0);
   });
-  ['pointerup','pointercancel','pointerleave'].forEach(function(evt){
-    timeDisplay.addEventListener(evt, cancelLongPress);
+  wireLongPress(iqsSetsItem, canEditSets, openSetsEdit);
+
+  function canEditRest(){
+    var iv = restInterval();
+    return !!(iv && iv.type !== 'reps' && isIdleNow());
+  }
+  function openRestEdit(){
+    if(restEditing || !canEditRest()) return;
+    restEditing = true;
+    var remaining = Math.round(restInterval().durationSec || 0);
+    iqsRestMin.value = Math.floor(remaining/60);
+    iqsRestSec.value = remaining % 60;
+    iqsRestVal.hidden = true;
+    iqsRestEdit.hidden = false;
+    iqsRestMin.focus();
+    iqsRestMin.select();
+  }
+  function closeRestEdit(commit){
+    if(!restEditing) return;
+    restEditing = false;
+    if(commit){
+      var mm = parseInt(iqsRestMin.value, 10); if(isNaN(mm)) mm = 0;
+      var ss = parseInt(iqsRestSec.value, 10); if(isNaN(ss)) ss = 0;
+      ss = Math.max(0, Math.min(59, ss));
+      mm = Math.max(0, Math.min(99, mm));
+      var iv = restInterval();
+      if(iv){
+        iv.durationSec = mm*60 + ss;
+        savePresets();
+        plan = buildPlan(currentPreset);
+      }
+    }
+    iqsRestEdit.hidden = true;
+    iqsRestVal.hidden = false;
+    renderIdleFrame();
+  }
+  iqsRestMin.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); iqsRestSec.focus(); iqsRestSec.select(); }
+    else if(e.key === 'Escape'){ closeRestEdit(false); }
   });
+  iqsRestSec.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); closeRestEdit(true); }
+    else if(e.key === 'Escape'){ closeRestEdit(false); }
+  });
+  iqsRestEdit.addEventListener('focusout', function(){
+    setTimeout(function(){ if(!iqsRestEdit.contains(document.activeElement)) closeRestEdit(true); }, 0);
+  });
+  wireLongPress(iqsRestItem, canEditRest, openRestEdit);
 
   function finishWorkout(){
     running = false;
