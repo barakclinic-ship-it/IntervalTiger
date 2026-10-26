@@ -1332,6 +1332,20 @@
     font-family: inherit;
   }
   .iv-sound-panel select option{ color: #111; }
+  .sound-pick-list{ display: flex; flex-direction: column; gap: 6px; }
+  .sound-pick-group{ font-size: 12px; font-weight: 700; color: var(--text-dim); padding: 10px 2px 2px; }
+  .sound-pick-row{
+    text-align: start;
+    padding: 13px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .sound-pick-row.selected{ background: #fff; color: #000; font-weight: 800; }
   .iv-sound-library-btn{
     flex-shrink: 0;
     padding: 10px 12px;
@@ -1436,7 +1450,7 @@
 <div class="settings-overlay" id="soundLibraryOverlay" hidden>
   <div class="settings-sheet">
     <div class="settings-title">
-      <span>מאגר צלילים ושירים</span>
+      <span id="soundLibraryTitle">צלילים</span>
       <button class="iconbtn" id="closeSoundLibraryBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
@@ -1456,8 +1470,12 @@
         <div class="tracks-manage" id="tracksManage">
           <div class="tracks-empty" id="tracksEmpty">עדיין לא הועלו שירים</div>
         </div>
-        <div class="filehint">מהמכשיר או מגוגל דרייב (דרך בורר הקבצים של המערכת). mp3 / mp4 / wav / m4a מתנגנים ישירות בדפדפן. קובצי avi לרוב לא מתנגנים — עדיף להמיר קודם ל-mp3/mp4. לכל שלב/אינטרוול יש הגדרת צליל משלו (סמל הגלגל-שיניים על כרטיס האינטרוול). לכל צליל מובנה גם צבע משלו — הוא צובע את המסך כל עוד השלב שהוגדר לו פעיל.</div>
+        <div class="filehint">מהמכשיר או מגוגל דרייב (דרך בורר הקבצים של המערכת). mp3 / mp4 / wav / m4a מתנגנים ישירות בדפדפן. קובצי avi לרוב לא מתנגנים — עדיף להמיר קודם ל-mp3/mp4.</div>
       </div>
+    </div>
+
+    <div class="field-group">
+      <div class="sound-pick-list" id="soundPickerList"></div>
     </div>
 
     <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.avi,.wav,.m4a,.mov,.mkv,.aac,.ogg,.flac" multiple hidden>
@@ -1822,15 +1840,17 @@
   }
   function applyFloodForStep(step){
     var iv = step.iv;
-    var color = null;
-    var assigned = iv ? iv.soundAssignment : null;
-    if(typeof assigned === 'string' && assigned.indexOf('builtin:') === 0){
-      var snd = builtinById(assigned.slice('builtin:'.length));
-      if(snd && snd.color) color = snd.color;
+    // The interval's own color (the one set on its card) always wins, so
+    // the running screen matches the card. A built-in sound's color is only
+    // a fallback for an interval that has no color of its own.
+    var color = (iv && iv.color) || null;
+    if(!color && iv){
+      var assigned = iv.soundAssignment;
+      if(typeof assigned === 'string' && assigned.indexOf('builtin:') === 0){
+        var snd = builtinById(assigned.slice('builtin:'.length));
+        if(snd && snd.color) color = snd.color;
+      }
     }
-    // An interval's own color also takes over the whole screen while it's
-    // running — not just a sound's color.
-    if(!color && iv) color = iv.color || null;
     if(color) setFlood(color); else clearFlood();
   }
   function setRingFraction(frac){
@@ -1880,19 +1900,23 @@
   var masterMakeup = null;
   function comp(c){
     if(!masterCompressor){
+      // Chain: sources -> big pre-gain -> hard limiter -> destination.
+      // The pre-gain pushes every cue far louder than the music; the
+      // limiter then flattens the peaks so it stays loud without
+      // distorting.
+      masterMakeup = c.createGain();
+      masterMakeup.gain.setValueAtTime(3.2, c.currentTime);
       masterCompressor = c.createDynamicsCompressor();
       try{
-        masterCompressor.threshold.setValueAtTime(-24, c.currentTime);
-        masterCompressor.knee.setValueAtTime(6, c.currentTime);
-        masterCompressor.ratio.setValueAtTime(14, c.currentTime);
+        masterCompressor.threshold.setValueAtTime(-12, c.currentTime);
+        masterCompressor.knee.setValueAtTime(0, c.currentTime);
+        masterCompressor.ratio.setValueAtTime(20, c.currentTime);
         masterCompressor.attack.setValueAtTime(0.001, c.currentTime);
-        masterCompressor.release.setValueAtTime(0.12, c.currentTime);
+        masterCompressor.release.setValueAtTime(0.1, c.currentTime);
       }catch(e){}
-      masterMakeup = c.createGain();
-      masterMakeup.gain.setValueAtTime(1.8, c.currentTime);
-      masterCompressor.connect(masterMakeup).connect(c.destination);
+      masterMakeup.connect(masterCompressor).connect(c.destination);
     }
-    return masterCompressor;
+    return masterMakeup;
   }
   // Turns the background track down for a moment so a cue beep cuts
   // through it instead of getting buried under it, then brings it back.
@@ -1903,7 +1927,7 @@
       if(!audioEl || audioEl.paused) return;
       if(duckRestoreHandle){ clearTimeout(duckRestoreHandle); }
       else { duckBaseVolume = audioEl.volume; }
-      audioEl.volume = Math.max(0, (duckBaseVolume == null ? 1 : duckBaseVolume) * 0.25);
+      audioEl.volume = Math.max(0, (duckBaseVolume == null ? 1 : duckBaseVolume) * 0.08);
       duckRestoreHandle = setTimeout(function(){
         audioEl.volume = duckBaseVolume == null ? 1 : duckBaseVolume;
         duckRestoreHandle = null;
@@ -2564,14 +2588,38 @@
     }
     sel.value = val;
   }
-  // Refreshes every per-interval sound <select> currently rendered inside
-  // the open advanced editor (e.g. after the track list changes).
+  // The single sound window: shows every available sound as a row; tapping
+  // one assigns it to the card that opened the window and closes it.
+  var soundPickerIv = null;
   function renderSoundSelects(){
-    document.querySelectorAll('.soundSelect').forEach(function(sel){
-      var ivId = sel.getAttribute('data-iv');
-      var iv = currentPreset.intervals.filter(function(x){ return x.id === ivId; })[0];
-      if(iv) fillSoundSelect(sel, iv);
-    });
+    var list = document.getElementById('soundPickerList');
+    if(!list) return;
+    list.innerHTML = '';
+    if(!soundPickerIv) return;
+    var current = soundPickerIv.soundAssignment;
+    function addRow(value, label, group){
+      if(group){
+        var g = document.createElement('div');
+        g.className = 'sound-pick-group';
+        g.textContent = group;
+        list.appendChild(g);
+      }
+      var row = document.createElement('button');
+      row.type = 'button';
+      var sel = (value === null && current == null) || (value !== null && String(value) === String(current));
+      row.className = 'sound-pick-row' + (sel ? ' selected' : '');
+      row.textContent = label;
+      row.addEventListener('click', function(){
+        soundPickerIv.soundAssignment = value;
+        savePresets();
+        closeSoundLibrary();
+        renderEditorIntervals();
+      });
+      list.appendChild(row);
+    }
+    addRow(null, 'ללא צליל נוסף (רק ביפים קצרים)');
+    BUILTIN_SOUNDS.forEach(function(sn, i){ addRow('builtin:' + sn.id, sn.name, i === 0 ? 'צלילים מובנים' : null); });
+    tracks.forEach(function(t, i){ addRow(t.id, t.name, i === 0 ? 'השירים שהעלית' : null); });
   }
 
   function hasSegment(t){ return t.segStart != null && t.segEnd != null && t.segEnd > t.segStart; }
@@ -3197,13 +3245,10 @@
         '<div class="iv-icon-group">' +
           '<button type="button" class="iv-icon-btn iv-dup" title="שכפל"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
           '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
-          '<button type="button" class="iv-icon-btn iv-gear" title="צליל לאינטרוול"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 16.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>' +
+          '<button type="button" class="iv-icon-btn iv-gear" title="צליל"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>' +
         '</div>' +
       '</div>' +
-      '<div class="iv-sound-panel" hidden>' +
-        '<select class="soundSelect"></select>' +
-        '<button type="button" class="iv-sound-library-btn" title="הוספת/הקלטת צלילים ושירים חדשים">+ מאגר</button>' +
-      '</div>';
+      '';
 
     // The name shows as plain text (not an always-editable box) — hold it
     // down to rename, same long-press-to-edit pattern as everything else.
@@ -3305,17 +3350,7 @@
     dragHandle.addEventListener('pointerup', onDragEnd);
     dragHandle.addEventListener('pointercancel', onDragEnd);
 
-    var gearBtn = card.querySelector('.iv-gear');
-    var soundPanel = card.querySelector('.iv-sound-panel');
-    var soundSelect = soundPanel.querySelector('.soundSelect');
-    soundSelect.setAttribute('data-iv', iv.id);
-    fillSoundSelect(soundSelect, iv);
-    soundSelect.addEventListener('change', function(){
-      iv.soundAssignment = soundSelect.value === '' ? null : (soundSelect.value.indexOf('builtin:') === 0 ? soundSelect.value : Number(soundSelect.value));
-      savePresets();
-    });
-    gearBtn.addEventListener('click', function(){ soundPanel.hidden = !soundPanel.hidden; });
-    soundPanel.querySelector('.iv-sound-library-btn').addEventListener('click', openSoundLibrary);
+    card.querySelector('.iv-gear').addEventListener('click', function(){ openSoundLibrary(iv); });
 
     return card;
   }
@@ -3351,7 +3386,9 @@
   // inside a card's own sound panel (see buildIvCard), not from the header ----------
   var soundLibraryOverlay = document.getElementById('soundLibraryOverlay');
   var closeSoundLibraryBtn = document.getElementById('closeSoundLibraryBtn');
-  function openSoundLibrary(){
+  function openSoundLibrary(iv){
+    soundPickerIv = iv || null;
+    document.getElementById('soundLibraryTitle').textContent = iv ? ('צליל ל"' + iv.name + '"') : 'צלילים';
     renderSoundSelects();
     soundLibraryOverlay.hidden = false;
   }
