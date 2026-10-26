@@ -1216,7 +1216,8 @@
   }
   .iv-card{ background: var(--surface-2); padding: 12px; }
   .iv-card-top{ display: flex; align-items: center; gap: 8px; }
-  .iv-part{ border-radius: 16px; padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .iv-parts{ border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .iv-part{ border-radius: 0; padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 2px; }
   .iv-part-head{ display: flex; align-items: center; justify-content: space-between; }
   .iv-part-label{ font-size: 14px; font-weight: 800; }
   .iv-part-tools{ display: flex; align-items: center; gap: 8px; }
@@ -1344,7 +1345,7 @@
   .sound-pick-group{ font-size: 12px; font-weight: 700; color: var(--text-dim); padding: 10px 2px 2px; }
   .sound-pick-row{
     text-align: start;
-    padding: 13px 14px;
+    padding: 11px 14px;
     border-radius: 12px;
     border: 1px solid var(--border);
     background: var(--surface-2);
@@ -1354,6 +1355,10 @@
     cursor: pointer;
   }
   .sound-pick-row.selected{ background: #fff; color: #000; font-weight: 800; }
+  .sound-pick-top{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .sound-pick-play{ width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(127,127,127,.28); color: inherit; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .sound-pick-pitch{ display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11px; font-weight: 600; opacity: .85; }
+  .sound-pick-pitch input{ flex: 1; min-width: 0; accent-color: #34d399; }
   .iv-sound-library-btn{
     flex-shrink: 0;
     padding: 10px 12px;
@@ -1923,8 +1928,29 @@
   // ---------- beep cues (synthesized, boosted for loudness) ----------
   var actx = null;
   var masterCompressor = null;
+  // Per-sound pitch (in cents, 0 = original). Applied as oscillator detune
+  // only while a built-in sound plays, so the short phase beeps stay as-is.
+  var pitchCents = 0;
+  var PITCH_KEY = 'tiger_pitch_v1';
+  var soundPitch = {};
+  try{ soundPitch = JSON.parse(localStorage.getItem(PITCH_KEY) || '{}') || {}; }catch(e){ soundPitch = {}; }
+  function getPitch(id){ return typeof soundPitch[id] === 'number' ? soundPitch[id] : 0; }
+  function setPitch(id, cents){
+    soundPitch[id] = cents;
+    try{ localStorage.setItem(PITCH_KEY, JSON.stringify(soundPitch)); }catch(e){}
+  }
   function ctx(){
-    if(!actx){ try{ actx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} }
+    if(!actx){
+      try{
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        var origOsc = actx.createOscillator.bind(actx);
+        actx.createOscillator = function(){
+          var o = origOsc();
+          try{ if(pitchCents) o.detune.value = pitchCents; }catch(e){}
+          return o;
+        };
+      }catch(e){}
+    }
     return actx;
   }
   // A limiter so the louder beeps below don't clip / distort, plus a
@@ -2100,7 +2126,11 @@
     osc.connect(g).connect(dest);
     osc.start(t0); osc.stop(t0 + 0.9);
   }
-  function doubleBeepTone(){ beep(900, 90, 0.9); setTimeout(function(){ beep(1250, 110, 0.9); }, 110); }
+  function doubleBeepTone(){
+    var p = pitchCents;
+    beep(900, 90, 0.9);
+    setTimeout(function(){ var prev = pitchCents; pitchCents = p; beep(1250, 110, 0.9); pitchCents = prev; }, 110);
+  }
   function classicBeepTone(){ beep(1050, 150, 0.95); }
 
   // Each built-in sound also carries a color: while its phase is active,
@@ -2114,6 +2144,13 @@
     { id:'siren',   name:'סירנה',     color:'#f472b6', play: sirenTone }
   ];
   function builtinById(id){ return BUILTIN_SOUNDS.filter(function(s){ return s.id === id; })[0]; }
+  // Plays a built-in sound at its saved pitch (used by the phase cue and
+  // by the preview button in the sound window).
+  function playBuiltinSound(snd){
+    pitchCents = getPitch(snd.id);
+    try{ snd.play(); }catch(e){}
+    pitchCents = 0;
+  }
 
   // ---------- transport ----------
   function goToStep(idx, autoStartTimer, skipCue){
@@ -2631,18 +2668,44 @@
     list.innerHTML = '';
     if(!soundPickerIv) return;
     var current = soundPickerIv.soundAssignment;
-    function addRow(value, label, group){
+    function addRow(value, label, group, snd){
       if(group){
         var g = document.createElement('div');
         g.className = 'sound-pick-group';
         g.textContent = group;
         list.appendChild(g);
       }
-      var row = document.createElement('button');
-      row.type = 'button';
+      var row = document.createElement('div');
+      row.setAttribute('role', 'button');
       var sel = (value === null && current == null) || (value !== null && String(value) === String(current));
       row.className = 'sound-pick-row' + (sel ? ' selected' : '');
-      row.textContent = label;
+      var top = document.createElement('div');
+      top.className = 'sound-pick-top';
+      var nm = document.createElement('span');
+      nm.className = 'sound-pick-name';
+      nm.textContent = label;
+      top.appendChild(nm);
+      if(snd){
+        var play = document.createElement('button');
+        play.type = 'button';
+        play.className = 'sound-pick-play';
+        play.setAttribute('aria-label', 'השמע');
+        play.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+        play.addEventListener('click', function(e){ e.stopPropagation(); playBuiltinSound(snd); });
+        top.appendChild(play);
+      }
+      row.appendChild(top);
+      if(snd){
+        var pr = document.createElement('div');
+        pr.className = 'sound-pick-pitch';
+        pr.innerHTML = '<span>נמוך</span><input type="range" min="-1200" max="600" step="100"><span>גבוה</span>';
+        var rng = pr.querySelector('input');
+        rng.value = getPitch(snd.id);
+        rng.addEventListener('click', function(e){ e.stopPropagation(); });
+        rng.addEventListener('input', function(){ setPitch(snd.id, parseInt(rng.value, 10)); });
+        rng.addEventListener('change', function(){ playBuiltinSound(snd); });
+        row.appendChild(pr);
+      }
       row.addEventListener('click', function(){
         soundPickerIv.soundAssignment = value;
         savePresets();
@@ -2652,7 +2715,7 @@
       list.appendChild(row);
     }
     addRow(null, 'ללא צליל נוסף (רק ביפים קצרים)');
-    BUILTIN_SOUNDS.forEach(function(sn, i){ addRow('builtin:' + sn.id, sn.name, i === 0 ? 'צלילים מובנים' : null); });
+    BUILTIN_SOUNDS.forEach(function(sn, i){ addRow('builtin:' + sn.id, sn.name, i === 0 ? 'צלילים מובנים' : null, sn); });
     tracks.forEach(function(t, i){ addRow(t.id, t.name, i === 0 ? 'השירים שהעלית' : null); });
   }
 
@@ -3041,7 +3104,7 @@
     currentSegStart = null;
     currentSegEnd = null;
     shouldLoopFull = false;
-    snd.play();
+    playBuiltinSound(snd);
     nowPlaying.textContent = snd.name;
     nowPlaying.className = 'now-playing on';
     if(nowPlayingClearHandle) clearTimeout(nowPlayingClearHandle);
@@ -3271,8 +3334,7 @@
         '<button type="button" class="iv-icon-btn iv-dup" title="העתק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
         '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</div>' +
-      '<div class="iv-part iv-part-work"></div>' +
-      '<div class="iv-part iv-part-rest"></div>';
+      '<div class="iv-parts"><div class="iv-part iv-part-work"></div><div class="iv-part iv-part-rest"></div></div>';
 
     // The name shows as plain text (not an always-editable box) — hold it
     // down to rename, same long-press-to-edit pattern as everything else.
