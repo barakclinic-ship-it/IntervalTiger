@@ -100,6 +100,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    /* The stage below is a fixed, full-viewport layer (see .stage) that sits
+       above the header in paint order by default once it carries its own
+       z-index — without this, the header would be invisible underneath it
+       whenever the stage is on screen, which is now always. */
+    position: relative;
+    z-index: 10;
   }
   .brand{
     display: flex;
@@ -110,6 +116,10 @@
     height: 34px;
     width: auto;
     display: block;
+    /* Forced to a flat white silhouette (the source PNG has dark ink) plus
+       a soft shadow, so it reads against any flood color or the plain dark
+       background, instead of vanishing into dark surfaces. */
+    filter: brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,.5));
   }
   .header-actions{
     display: flex;
@@ -123,7 +133,8 @@
     height: 44px;
     border: none;
     background: transparent;
-    color: var(--accent-soft);
+    color: #ffffff;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,.5));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -194,19 +205,32 @@
   }
   .iconbtn:hover{ background: var(--surface-2); }
 
+  /* The stage (countdown display) is a full-screen takeover in EVERY state —
+     idle "ready to start", running, and done — not just while a phase is
+     actually running. That's the whole point: the home screen you open the
+     app into already speaks the same visual language as the running screen
+     (edge to edge, no card/border/shadow, giant bold numbers), so small
+     adjustments can happen right there with a long-press instead of a trip
+     into settings. Only the background color changes: plain and dark at
+     rest, an interval's own flood color while that interval runs. */
   .stage{
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 28px 20px 24px;
-    box-shadow: var(--shadow);
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: calc(28px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 16px;
-    overflow: hidden;
-    transition: box-shadow .4s ease;
+    overflow: visible;
   }
   .stage::before{
     content: '';
@@ -219,29 +243,6 @@
     z-index: 0;
   }
   .stage.flooded::before{ opacity: .9; }
-  /* The reference app's running screen isn't a card at all — it's the
-     entire device screen in one flat color, edge to edge, with no border,
-     no shadow, no corner radius and no app chrome (header/icons) visible
-     over it. Rather than just stripping the card's visual chrome (which
-     still left it sized/positioned like a card inset within the page's
-     own side padding), take it out of the normal page flow entirely and
-     pin it over the full viewport, the same way a fullscreen takeover
-     works — only while a phase is actually running. */
-  .stage.flooded{
-    position: fixed;
-    inset: 0;
-    z-index: 5;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
-    padding: calc(28px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px));
-    justify-content: center;
-    overflow: visible;
-  }
   .stage > *{ position: relative; z-index: 1; }
   .phase-pill{
     font-size: 13px;
@@ -271,7 +272,7 @@
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
   }
-  .stage.flooded .run-counter{ color: rgba(255,255,255,.85); font-size: 32px; }
+  .stage .run-counter{ color: rgba(255,255,255,.85); font-size: 32px; }
   .rounds{
     font-size: 13px;
     color: var(--text-dim);
@@ -280,20 +281,20 @@
   }
   /* When the phase color floods the whole card, dim/tinted text would
      vanish into it — force strong contrast instead. */
-  .stage.flooded .rounds{ color: rgba(255,255,255,.85); }
+  .stage .rounds{ color: rgba(255,255,255,.85); }
   /* The reference app shows the phase name as plain bold caps sitting
      directly on the flood color — no pill/chip — so strip the chip look
      only while a phase is actually running (flooded); the idle "מוכן
      להתחיל" pill keeps its normal chip styling. */
-  .stage.flooded .phase-pill.big{
+  .stage .phase-pill.big{
     background: none;
     color: rgba(255,255,255,.72);
     font-size: 24px;
     letter-spacing: 2px;
     padding: 0;
   }
-  .stage.flooded .now-playing{ color: rgba(255,255,255,.8); }
-  .stage.flooded .now-playing.on{ color: #fff; }
+  .stage .now-playing{ color: rgba(255,255,255,.8); }
+  .stage .now-playing.on{ color: #fff; }
 
   .ring-wrap{
     position: relative;
@@ -312,9 +313,9 @@
      reference app's flat, full-bleed look — just the flood color and a
      giant number — and the number is allowed to grow past the ring's
      own box since there's no ring to stay inside of anymore. */
-  .stage.flooded .ring-wrap{ width: min(500px, 98vw); height: auto; }
-  .stage.flooded .ring-wrap svg{ opacity: 0; position: absolute; }
-  .stage.flooded .ring-center{ position: static; }
+  .stage .ring-wrap{ width: min(500px, 98vw); height: auto; }
+  .stage .ring-wrap svg{ opacity: 0; position: absolute; }
+  .stage .ring-center{ position: static; }
   .ring-center{
     position: absolute;
     inset: 0;
@@ -335,7 +336,7 @@
      even at large sizes, so pushing font-size alone still reads as thin —
      a text-stroke traces over the letterforms to thicken them, which is
      what actually makes the digits look bold/heavy like the reference. */
-  .stage.flooded .ring-center .time{
+  .stage .ring-center .time{
     font-size: min(172px, 34vw);
     -webkit-text-stroke: 5px currentColor;
     text-stroke: 5px currentColor;
@@ -435,8 +436,8 @@
   /* Plain white/near-black buttons read as high-contrast chrome sitting on
      top of the run color; a neutral grey — on every control, including the
      primary pause button — fits the flat full-screen look much better. */
-  .stage.flooded .btn.primary{ background: #8d8d99; color: #16161d; }
-  .stage.flooded .btn.ghost{ background: rgba(141,141,153,.42); color: #fff; }
+  .stage .btn.primary{ background: #8d8d99; color: #16161d; }
+  .stage .btn.ghost{ background: rgba(141,141,153,.42); color: #fff; }
 
   .settings-overlay{
     position: fixed;
@@ -1665,10 +1666,18 @@
   }
   function currentStyle(){ return getComputedStyle(document.documentElement); }
 
-  var IDLE_STEP = { phase:'idle', dur:0, iv:null };
+  // The idle "ready to start" preview mirrors the current preset's first
+  // interval (instead of a fixed 00:00), so the home screen already shows
+  // what pressing start will run — and so a long-press on it can nudge
+  // that number directly (see the long-press section below).
+  function idleStep(){
+    var iv = currentPreset.intervals && currentPreset.intervals[0];
+    var dur = (iv && iv.type !== 'reps') ? (iv.durationSec || 0) : 0;
+    return { phase:'idle', dur: dur, iv: null };
+  }
   function currentStepOrIdle(){
-    if(stepIndex===0 && !running && phaseRemainingMs===null) return IDLE_STEP;
-    return plan[stepIndex] || IDLE_STEP;
+    if(stepIndex===0 && !running && phaseRemainingMs===null) return idleStep();
+    return plan[stepIndex] || idleStep();
   }
   function renderIdleFrame(){
     var step = currentStepOrIdle();
@@ -1698,7 +1707,7 @@
     if(activeFloodColor){
       // The whole card is already painted in this color — match the
       // reference app's look of plain bold caps sitting directly on the
-      // flood, no chip background. The CSS (.stage.flooded .phase-pill.big)
+      // flood, no chip background. The CSS (.stage .phase-pill.big)
       // handles the actual color/size; just clear any inline override.
       phasePill.style.background = '';
       phasePill.style.color = '';
@@ -2013,16 +2022,26 @@
     return 0;
   }
   function canEditRemainingTime(){
-    if(!inProgress) return false;
-    var step = plan[stepIndex];
-    return !!(step && step.reps == null && step.phase !== 'idle' && step.phase !== 'done');
+    if(inProgress){
+      var step = plan[stepIndex];
+      return !!(step && step.reps == null && step.phase !== 'idle' && step.phase !== 'done');
+    }
+    // Not started yet: the home screen is already showing the current
+    // preset's first interval, so a long-press there can nudge it directly
+    // — no need to open settings for a quick change before pressing start.
+    var iv = currentPreset.intervals && currentPreset.intervals[0];
+    return !!(iv && iv.type !== 'reps' && stepIndex === 0 && !running && phaseRemainingMs === null);
   }
   function openTimeEdit(){
     if(editingTime || !canEditRemainingTime()) return;
     editingTime = true;
+    var idleMode = !inProgress;
+    timeEditGroup.dataset.wasIdle = idleMode ? '1' : '';
     var wasRunning = running;
     if(wasRunning) startOrResume(); // pauses — keeps every pause side-effect (wake lock, music, button label) in one place
-    var remaining = Math.round(currentRemainingSec());
+    var remaining = idleMode
+      ? Math.round((currentPreset.intervals[0] && currentPreset.intervals[0].durationSec) || 0)
+      : Math.round(currentRemainingSec());
     timeEditMin.value = Math.floor(remaining/60);
     timeEditSec.value = remaining % 60;
     timeDisplay.hidden = true;
@@ -2034,16 +2053,29 @@
   function closeTimeEdit(commit){
     if(!editingTime) return;
     editingTime = false;
+    var idleMode = timeEditGroup.dataset.wasIdle === '1';
     if(commit){
       var mm = parseInt(timeEditMin.value, 10); if(isNaN(mm)) mm = 0;
       var ss = parseInt(timeEditSec.value, 10); if(isNaN(ss)) ss = 0;
       ss = Math.max(0, Math.min(59, ss));
       mm = Math.max(0, Math.min(99, mm));
       var newMs = (mm*60 + ss) * 1000;
-      phaseRemainingMs = newMs;
-      phaseEndAt = null;
-      timeDisplay.textContent = fmtTime(newMs/1000);
-      setRingFraction(0);
+      if(idleMode){
+        // Editing the home-screen preview writes straight through to the
+        // current preset's first interval and persists it, exactly as if
+        // it had been changed in the preset editor.
+        if(currentPreset.intervals[0]){
+          currentPreset.intervals[0].durationSec = Math.round(newMs/1000);
+          savePresets();
+          plan = buildPlan(currentPreset);
+        }
+        renderIdleFrame();
+      } else {
+        phaseRemainingMs = newMs;
+        phaseEndAt = null;
+        timeDisplay.textContent = fmtTime(newMs/1000);
+        setRingFraction(0);
+      }
     }
     timeEditGroup.hidden = true;
     timeDisplay.hidden = false;
@@ -3293,7 +3325,11 @@
       presets.push(editingPreset);
     }
     savePresets();
-    if(currentPresetId === editingPreset.id) setCurrentPreset(editingPreset);
+    if(currentPresetId === editingPreset.id){
+      setCurrentPreset(editingPreset);
+      plan = buildPlan(currentPreset);
+      if(!inProgress) renderIdleFrame();
+    }
     renderPresetsList();
     closeEditor();
   });
@@ -3303,7 +3339,11 @@
     presets = presets.filter(function(x){ return x.id !== editingPreset.id; });
     if(!presets.length) presets = [defaultClassicPreset()];
     savePresets();
-    if(currentPresetId === editingPreset.id) setCurrentPreset(presets[0]);
+    if(currentPresetId === editingPreset.id){
+      setCurrentPreset(presets[0]);
+      plan = buildPlan(currentPreset);
+      if(!inProgress) renderIdleFrame();
+    }
     renderPresetsList();
     closeEditor();
   });
@@ -3374,10 +3414,11 @@
 
   renderIdleFrame();
 
-  // The app now opens straight into settings: land on "הגדרות", the person
-  // reviews/sets their times and sounds, and only after pressing "שמור"
-  // does the actual (black-and-white, phase-colors-only) timer screen show.
-  openSettings();
+  // The app opens straight into the display screen itself (same full-screen,
+  // bold-numbers look as while running) — not into settings. It already
+  // previews the current preset's first interval, and a long-press on the
+  // number lets you tweak it on the spot; settings (⚙) is for everything
+  // bigger (sounds, more intervals, presets).
 })();
 </script>
 
