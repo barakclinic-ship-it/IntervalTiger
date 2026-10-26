@@ -219,7 +219,29 @@
     z-index: 0;
   }
   .stage.flooded::before{ opacity: .9; }
-  .stage.flooded{ box-shadow: 0 0 0 2px var(--flood), var(--shadow); }
+  /* The reference app's running screen isn't a card at all — it's the
+     entire device screen in one flat color, edge to edge, with no border,
+     no shadow, no corner radius and no app chrome (header/icons) visible
+     over it. Rather than just stripping the card's visual chrome (which
+     still left it sized/positioned like a card inset within the page's
+     own side padding), take it out of the normal page flow entirely and
+     pin it over the full viewport, the same way a fullscreen takeover
+     works — only while a phase is actually running. */
+  .stage.flooded{
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: calc(28px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    justify-content: center;
+    overflow: visible;
+  }
   .stage > *{ position: relative; z-index: 1; }
   .phase-pill{
     font-size: 13px;
@@ -235,9 +257,41 @@
   .phase-pill.setrest{ background: var(--surface-2); color: var(--text); }
   .phase-pill.done{ background: var(--surface-2); color: var(--text); }
   .phase-pill.idle{ background: var(--surface-2); color: var(--text-dim); }
+  .phase-pill.big{
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 7px 20px;
+  }
+  .run-counter{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: 28px;
+    letter-spacing: .5px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .stage.flooded .run-counter{ color: rgba(255,255,255,.85); font-size: 32px; }
+  .rounds{
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
   /* When the phase color floods the whole card, dim/tinted text would
      vanish into it — force strong contrast instead. */
-  .stage.flooded .ring-center .rounds{ color: rgba(255,255,255,.85); }
+  .stage.flooded .rounds{ color: rgba(255,255,255,.85); }
+  /* The reference app shows the phase name as plain bold caps sitting
+     directly on the flood color — no pill/chip — so strip the chip look
+     only while a phase is actually running (flooded); the idle "מוכן
+     להתחיל" pill keeps its normal chip styling. */
+  .stage.flooded .phase-pill.big{
+    background: none;
+    color: rgba(255,255,255,.72);
+    font-size: 24px;
+    letter-spacing: 2px;
+    padding: 0;
+  }
   .stage.flooded .now-playing{ color: rgba(255,255,255,.8); }
   .stage.flooded .now-playing.on{ color: #fff; }
 
@@ -246,7 +300,7 @@
     width: min(300px, 74vw);
     height: min(300px, 74vw);
   }
-  .ring-wrap svg{ width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-wrap svg{ width: 100%; height: 100%; transform: rotate(-90deg); transition: opacity .3s ease; }
   .ring-track{ fill: none; stroke: var(--surface-2); stroke-width: 10; }
   .ring-progress{
     fill: none;
@@ -254,6 +308,13 @@
     stroke-linecap: round;
     transition: stroke .25s;
   }
+  /* While a phase is actually running the ring is dropped in favor of the
+     reference app's flat, full-bleed look — just the flood color and a
+     giant number — and the number is allowed to grow past the ring's
+     own box since there's no ring to stay inside of anymore. */
+  .stage.flooded .ring-wrap{ width: min(500px, 98vw); height: auto; }
+  .stage.flooded .ring-wrap svg{ opacity: 0; position: absolute; }
+  .stage.flooded .ring-center{ position: static; }
   .ring-center{
     position: absolute;
     inset: 0;
@@ -270,10 +331,59 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: 1px;
   }
-  .ring-center .rounds{
-    font-size: 13px;
-    color: var(--text-dim);
-    font-variant-numeric: tabular-nums;
+  /* "Big and thick": Bebas Neue is a tall condensed face with thin strokes
+     even at large sizes, so pushing font-size alone still reads as thin —
+     a text-stroke traces over the letterforms to thicken them, which is
+     what actually makes the digits look bold/heavy like the reference. */
+  .stage.flooded .ring-center .time{
+    font-size: min(172px, 34vw);
+    -webkit-text-stroke: 5px currentColor;
+    text-stroke: 5px currentColor;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Long-press-to-edit: two plain number boxes, sized and positioned to
+     replace the countdown digits in place, so editing the remaining time
+     mid-workout doesn't require opening settings. Two boxes side by side
+     need to fit the same width the single countdown string used to — so
+     each one gets roughly half the countdown's own font-size, not the
+     full size (that was overflowing past the screen edge). */
+  .time-edit-group{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .time-edit-group .time-edit-part{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: min(78px, 16vw);
+    -webkit-text-stroke: 3px currentColor;
+    text-stroke: 3px currentColor;
+    width: 1.7em;
+    text-align: center;
+    color: inherit;
+    background: rgba(0,0,0,.2);
+    border: 2px solid rgba(255,255,255,.65);
+    border-radius: 14px;
+    line-height: 1;
+    padding: 4px 0;
+    /* Drop the native number-input spin arrows and selection tint — they
+       belong to the browser's default widget chrome, not this app. */
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .time-edit-group .time-edit-part::-webkit-outer-spin-button,
+  .time-edit-group .time-edit-part::-webkit-inner-spin-button{
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .time-edit-group .time-edit-part::selection{ background: rgba(255,255,255,.35); }
+  .time-edit-group .time-edit-colon{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: min(60px, 12vw);
+    color: rgba(255,255,255,.7);
   }
   .now-playing{
     font-size: 12px;
@@ -322,6 +432,11 @@
   .btn.ghost{ background: var(--surface-2); color: var(--text); }
   .btn.wide{ flex: 2; }
   .btn:disabled{ opacity: .45; cursor: not-allowed; }
+  /* Plain white/near-black buttons read as high-contrast chrome sitting on
+     top of the run color; a neutral grey — on every control, including the
+     primary pause button — fits the flat full-screen look much better. */
+  .stage.flooded .btn.primary{ background: #8d8d99; color: #16161d; }
+  .stage.flooded .btn.ghost{ background: rgba(141,141,153,.42); color: #fff; }
 
   .settings-overlay{
     position: fixed;
@@ -415,39 +530,42 @@
   .stepper{
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex-shrink: 0;
   }
   .stepper button{
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    border: none;
+    background: var(--surface);
     color: var(--text);
     font-size: 19px;
+    font-weight: 700;
     cursor: pointer;
   }
   .stepper span{
-    min-width: 40px;
+    min-width: 56px;
     text-align: center;
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
     font-variant-numeric: tabular-nums;
-    font-weight: 700;
-    font-size: 15px;
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: .5px;
     cursor: pointer;
     border-radius: 9px;
-    padding: 8px 4px;
+    padding: 4px 4px;
   }
-  .stepper span:hover{ background: var(--surface-2); }
+  .stepper span:hover{ background: var(--surface); }
   .stepper input.stepper-input{
-    width: 50px;
+    width: 58px;
     text-align: center;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    font-size: 15px;
-    font-family: inherit;
+    font-size: 18px;
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
     border: 1px solid var(--accent);
     border-radius: 9px;
-    padding: 8px 4px;
+    padding: 6px 4px;
     background: var(--surface);
     color: var(--text);
   }
@@ -457,21 +575,22 @@
     gap: 3px;
   }
   .stepper .time-input-group input.stepper-input-part{
-    width: 34px;
+    width: 42px;
     text-align: center;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    font-size: 15px;
-    font-family: inherit;
+    font-size: 24px;
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
     border: 1px solid var(--accent);
     border-radius: 9px;
-    padding: 8px 2px;
+    padding: 4px 2px;
     background: var(--surface);
     color: var(--text);
   }
   .stepper .time-input-group .time-colon{
     font-weight: 700;
-    font-size: 15px;
+    font-size: 24px;
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
     color: var(--text-dim);
   }
   .color-row{
@@ -838,6 +957,285 @@
   }
 
   .btn-save{ width: 100%; }
+
+  /* ---------- quickstart panel ---------- */
+  .qs-panel{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: var(--shadow);
+  }
+  .qs-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .qs-head .ttl{ font-weight: 800; font-size: 15px; letter-spacing: .3px; }
+  .qs-chevron{ transition: transform .2s ease; color: var(--text-dim); }
+  .qs-panel.collapsed .qs-chevron{ transform: rotate(-90deg); }
+  .qs-panel.collapsed .qs-body{ display: none; }
+  .qs-body{ display: flex; flex-direction: column; gap: 4px; }
+  .qs-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .qs-row:last-of-type{ border-bottom: none; }
+  .qs-row .qs-label{ font-size: 13px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--text-dim); }
+  .qs-actions{ display: flex; gap: 10px; margin-top: 4px; }
+  .qs-actions .btn{ font-size: 14px; min-height: 48px; }
+
+  /* ---------- presets list ---------- */
+  .presets-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .presets-head .ttl{ font-weight: 800; font-size: 14px; }
+  .presets-head-actions{ display: flex; align-items: center; gap: 6px; }
+  .btn-add-preset{
+    display: flex; align-items: center; gap: 4px;
+    background: var(--accent); color: var(--on-accent);
+    border: none; border-radius: 999px; padding: 8px 14px;
+    font-size: 13px; font-weight: 800; cursor: pointer;
+  }
+  .presets-list{ display: flex; flex-direction: column; gap: 14px; }
+  .preset-empty{ font-size: 12.5px; color: var(--text-dim); padding: 6px 2px; }
+  .preset-card{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow);
+  }
+  .preset-card.current{ border-color: var(--accent); }
+  .preset-top{ display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .preset-top .pname{ font-weight: 800; font-size: 17px; }
+  .preset-top .ptotal{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: 17px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    letter-spacing: .5px;
+  }
+  .preset-segbar{
+    display: flex;
+    width: 100%;
+    height: 30px;
+    border-radius: 9px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .preset-seg{
+    min-width: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: rgba(0,0,0,.62);
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 0 4px;
+  }
+  .preset-bottom{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .preset-bottom-icons{ display: flex; gap: 4px; }
+  .preset-icon-btn{
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .preset-icon-btn:hover{ background: var(--surface); color: var(--text); }
+  .preset-start-btn{
+    display: flex; align-items: center; gap: 6px;
+    background: var(--accent); color: var(--on-accent);
+    border: none; border-radius: 12px; padding: 10px 18px;
+    font-size: 14px; font-weight: 800; cursor: pointer;
+  }
+
+  /* ---------- advanced editor ---------- */
+  .editor-title-row{
+    display: flex; align-items: center; gap: 8px;
+  }
+  .editor-title-row .spacer{ flex: 1; }
+  .preset-name-field{
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    margin-bottom: 10px;
+  }
+  .sets-card{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .sets-card-row{ display: flex; align-items: center; justify-content: space-between; }
+  .sets-card-row .lbl{ font-size: 13px; font-weight: 700; color: var(--text-dim); }
+  .iv-list{ display: flex; flex-direction: column; gap: 12px; }
+  .iv-card{
+    border-radius: 20px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: #fff;
+    box-shadow: var(--shadow);
+  }
+  .iv-card-top{ display: flex; align-items: center; gap: 8px; }
+  .iv-name-input{
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,.55);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    font-family: inherit;
+    padding: 2px 0;
+  }
+  .iv-move-btns{ display: flex; gap: 2px; flex-shrink: 0; }
+  .iv-move-btns button{
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,.18);
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .iv-move-btns button:disabled{ opacity: .35; cursor: default; }
+  .iv-type-toggle{
+    display: inline-flex;
+    gap: 2px;
+    background: rgba(0,0,0,.2);
+    border-radius: 999px;
+    padding: 3px;
+    align-self: flex-start;
+  }
+  .iv-type-toggle button{
+    background: none; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 800; letter-spacing: .5px;
+    color: rgba(255,255,255,.65);
+    padding: 6px 14px;
+    border-radius: 999px;
+  }
+  .iv-type-toggle button.active{ color: #111; background: #fff; }
+  .iv-big-stepper{
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+    padding: 8px 0 2px;
+  }
+  .iv-big-stepper button{
+    width: 44px; height: 44px;
+    border-radius: 13px;
+    border: none;
+    background: rgba(255,255,255,.2);
+    color: #fff;
+    font-size: 21px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .iv-big-stepper .iv-big-val{
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-size: 54px;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    min-width: 120px;
+    text-align: center;
+    line-height: 1;
+  }
+  .iv-big-stepper input.stepper-input-part{
+    width: 58px;
+    text-align: center;
+    font-family: 'Bebas Neue','Inter',sans-serif;
+    font-size: 42px;
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 10px;
+    background: rgba(0,0,0,.2);
+    color: #fff;
+    padding: 2px 0;
+  }
+  .iv-big-stepper .time-colon{ font-size: 42px; color: rgba(255,255,255,.7); font-weight: 700; }
+  .iv-bottom-row{ display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .iv-color-group{ display: flex; align-items: center; gap: 8px; }
+  .iv-color-swatch{
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.6);
+    padding: 0; cursor: pointer; flex-shrink: 0;
+  }
+  .iv-color-label{ font-size: 11.5px; letter-spacing: .5px; color: rgba(255,255,255,.75); font-weight: 700; }
+  .iv-icon-group{ display: flex; gap: 2px; }
+  .iv-icon-btn{
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,.14);
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .iv-icon-btn.once-on{ background: #fff; color: #000; }
+  .iv-sound-panel{
+    background: rgba(0,0,0,.22);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .iv-sound-panel select{
+    flex: 1; min-width: 0;
+    padding: 10px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.4);
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .iv-sound-panel select option{ color: #111; }
+  .add-iv-btn{
+    width: 100%;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .add-iv-btn:hover{ background: var(--surface-2); color: var(--text); }
+
   [hidden]{ display: none !important; }
 </style>
 
@@ -860,8 +1258,8 @@
     </div>
   </header>
 
-  <div class="stage">
-    <div class="phase-pill idle" id="phasePill">מוכן להתחיל</div>
+  <div class="stage" id="stageEl">
+    <div class="run-counter" id="runCounter" hidden></div>
 
     <div class="ring-wrap">
       <svg viewBox="0 0 200 200">
@@ -870,9 +1268,16 @@
       </svg>
       <div class="ring-center">
         <div class="time" id="timeDisplay">00:00</div>
-        <div class="rounds" id="roundsDisplay">—</div>
+        <div class="time-edit-group" id="timeEditGroup" hidden>
+          <input type="number" class="time-edit-part" id="timeEditMin" min="0" max="99" aria-label="דקות">
+          <span class="time-edit-colon">:</span>
+          <input type="number" class="time-edit-part" id="timeEditSec" min="0" max="59" aria-label="שניות">
+        </div>
       </div>
     </div>
+
+    <div class="phase-pill idle big" id="phasePill">מוכן להתחיל</div>
+    <div class="rounds" id="roundsDisplay">—</div>
 
     <div class="now-playing" id="nowPlaying"></div>
 
@@ -912,141 +1317,79 @@
         <div class="tracks-manage" id="tracksManage">
           <div class="tracks-empty" id="tracksEmpty">עדיין לא הועלו שירים</div>
         </div>
-        <div class="filehint">מהמכשיר או מגוגל דרייב (דרך בורר הקבצים של המערכת). mp3 / mp4 / wav / m4a מתנגנים ישירות בדפדפן. קובצי avi לרוב לא מתנגנים — עדיף להמיר קודם ל-mp3/mp4. אחרי ההעלאה, בחר את השיר מהרשימה בהגדרת הזמן הרצויה למטה. לכל צליל מובנה גם צבע משלו — הוא צובע את המסך כל עוד השלב שהוגדר לו פעיל.</div>
+        <div class="filehint">מהמכשיר או מגוגל דרייב (דרך בורר הקבצים של המערכת). mp3 / mp4 / wav / m4a מתנגנים ישירות בדפדפן. קובצי avi לרוב לא מתנגנים — עדיף להמיר קודם ל-mp3/mp4. לכל שלב/אינטרוול יש הגדרת צליל משלו (סמל הגלגל-שיניים על כרטיס האינטרוול בעריכה המתקדמת). לכל צליל מובנה גם צבע משלו — הוא צובע את המסך כל עוד השלב שהוגדר לו פעיל.</div>
       </div>
     </div>
 
     <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.mp4,.avi,.wav,.m4a,.mov,.mkv,.aac,.ogg,.flac" multiple hidden>
 
     <div class="field-group">
-      <div class="field">
-        <div>
-          <div class="field-label">
-            <label class="phaseLabel" data-phase="prepare">היכון</label>
-            <button type="button" class="edit-label-btn" data-phase="prepare" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            </button>
+      <div class="qs-panel" id="qsPanel">
+        <div class="qs-head" id="qsHead">
+          <span class="ttl">התחלה מהירה</span>
+          <svg class="qs-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="qs-body" id="qsBody">
+          <div class="qs-row">
+            <span class="qs-label">סבבים</span>
+            <div class="stepper" id="qsSetsStepper" data-key="qsSets"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div>
           </div>
-          <span class="hint">שניות לפני שהאימון מתחיל · 0 = דילוג על השלב</span>
-        </div>
-        <div class="stepper" data-key="prepare">
-          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
-        </div>
-      </div>
-      <div class="color-row">
-        <span class="clabel">צבע השלב</span>
-        <input type="color" class="phaseColor" data-phase="prepare">
-      </div>
-      <div class="sound-row">
-        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-        <select class="soundSelect" data-phase="prepare"></select>
-      </div>
-    </div>
-
-    <div class="field-group">
-      <div class="field">
-        <div>
-          <div class="field-label">
-            <label class="phaseLabel" data-phase="work">עבודה</label>
-            <button type="button" class="edit-label-btn" data-phase="work" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            </button>
+          <div class="qs-row">
+            <span class="qs-label">עבודה</span>
+            <div class="stepper" id="qsWorkStepper" data-key="qsWork"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div>
           </div>
-          <span class="hint">משך כל סבב עבודה (שניות) · 0 = דילוג על השלב</span>
-        </div>
-        <div class="stepper" data-key="work">
-          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
-        </div>
-      </div>
-      <div class="color-row">
-        <span class="clabel">צבע השלב</span>
-        <input type="color" class="phaseColor" data-phase="work">
-      </div>
-      <div class="sound-row">
-        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9v6M3 10v4M9 6v12M15 6v12M18 9v6M21 10v4M9 12h6"/></svg></span>
-        <select class="soundSelect" data-phase="work"></select>
-      </div>
-    </div>
-
-    <div class="field-group">
-      <div class="field">
-        <div>
-          <div class="field-label">
-            <label class="phaseLabel" data-phase="rest">מנוחה</label>
-            <button type="button" class="edit-label-btn" data-phase="rest" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            </button>
+          <div class="qs-row">
+            <span class="qs-label">מנוחה</span>
+            <div class="stepper" id="qsRestStepper" data-key="qsRest"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div>
           </div>
-          <span class="hint">מנוחה בין סבבים (שניות) · 0 = דילוג על השלב</span>
-        </div>
-        <div class="stepper" data-key="rest">
-          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
-        </div>
-      </div>
-      <div class="color-row">
-        <span class="clabel">צבע השלב</span>
-        <input type="color" class="phaseColor" data-phase="rest">
-      </div>
-      <div class="sound-row">
-        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.8A8.5 8.5 0 1 1 11.2 4a7 7 0 0 0 8.8 8.8z"/></svg></span>
-        <select class="soundSelect" data-phase="rest"></select>
-      </div>
-    </div>
-
-    <div class="field-group">
-      <div class="field">
-        <div>
-          <label>סבבים</label>
-          <span class="hint">מספר סבבי עבודה/מנוחה בכל סט</span>
-        </div>
-        <div class="stepper" data-key="rounds">
-          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="field-group">
-      <div class="field">
-        <div>
-          <label>סטים</label>
-          <span class="hint">כמה פעמים לחזור על כל הסבבים</span>
-        </div>
-        <div class="stepper" data-key="sets">
-          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="field-group">
-      <div class="field">
-        <div>
-          <div class="field-label">
-            <label class="phaseLabel" data-phase="setrest">מנוחה בין סטים</label>
-            <button type="button" class="edit-label-btn" data-phase="setrest" title="שנה שם">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            </button>
+          <div class="qs-actions">
+            <button type="button" class="btn ghost" id="qsSaveBtn">💾 שמור כפריסט</button>
+            <button type="button" class="btn primary wide" id="qsStartBtn">⚡ התחל</button>
           </div>
-          <span class="hint">שניות · 0 = דילוג על השלב</span>
-        </div>
-        <div class="stepper" data-key="setRest">
-          <button data-dir="-1">−</button><span></span><button data-dir="1">+</button>
         </div>
       </div>
-      <div class="color-row">
-        <span class="clabel">צבע השלב</span>
-        <input type="color" class="phaseColor" data-phase="setrest">
-      </div>
-      <div class="sound-row">
-        <span class="snote"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg></span>
-        <select class="soundSelect" data-phase="setrest"></select>
-      </div>
-    </div>
     </div>
 
-    <div class="settings-footer">
-      <button class="btn primary btn-save" id="applySettingsBtn">שמור</button>
+    <div class="field-group">
+      <div class="presets-head">
+        <span class="ttl">הפריסטים שלי</span>
+        <div class="presets-head-actions">
+          <button type="button" class="btn-add-preset" id="addPresetBtn">+ הוסף</button>
+        </div>
+      </div>
+      <div class="presets-list" id="presetsList"></div>
     </div>
-    <button class="btn ghost reset-defaults-btn" id="resetDefaultsBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.36"/><path d="M3 4v5h5"/></svg><span>אפס להגדרות ראשוניות</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="settings-overlay" id="editorOverlay" hidden>
+  <div class="settings-sheet">
+    <div class="editor-title-row settings-title">
+      <button class="iconbtn" id="closeEditorBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <span>עריכת פריסט</span>
+      <span class="spacer"></span>
+      <button class="iconbtn" id="deleteEditorBtn" title="מחק פריסט" aria-label="מחק פריסט"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      <button class="iconbtn" id="saveEditorBtn" title="שמור" aria-label="שמור"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></button>
+    </div>
+
+    <div class="settings-scroll">
+      <input type="text" class="preset-name-field" id="editorNameField" maxlength="40" placeholder="שם הפריסט">
+
+      <div class="sets-card">
+        <div class="sets-card-row">
+          <span class="lbl">סטים (חזרות על כל האינטרוולים)</span>
+          <div class="stepper" id="editorSetsStepper" data-key="editorSets"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div>
+        </div>
+        <div class="sets-card-row">
+          <span class="lbl">מנוחה בין סטים</span>
+          <div class="stepper" id="editorSetRestStepper" data-key="editorSetRest"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div>
+        </div>
+      </div>
+
+      <div class="iv-list" id="ivList"></div>
+      <button type="button" class="add-iv-btn" id="addIvBtn">+ הוסף אינטרוול</button>
+    </div>
   </div>
 </div>
 
@@ -1085,48 +1428,164 @@
 (function(){
   "use strict";
 
-  // ---------- persisted workout settings ----------
-  var DEFAULTS = { prepare: 5, work: 50, rest: 10, rounds: 99, sets: 1, setRest: 0 };
-  var LIMITS = {
-    prepare: [0, 60, 5], work: [0, 300, 5], rest: [0, 120, 5],
-    rounds: [1, 99, 1], sets: [1, 10, 1], setRest: [0, 300, 10]
-  };
-  var settings = Object.assign({}, DEFAULTS);
-  try{
-    var saved = localStorage.getItem('tabata_pulse_settings_v1');
-    if(saved) settings = Object.assign({}, DEFAULTS, JSON.parse(saved));
-  }catch(e){}
-  function saveSettings(){
-    try{ localStorage.setItem('tabata_pulse_settings_v1', JSON.stringify(settings)); }catch(e){}
+  // ---------- data model: presets, each with an arbitrary ordered list of
+  // named, colored, independently-soundable intervals ----------
+  var IV_COLOR_ROTATION = ['#ff5c5c','#4f8fce','#35d0a0','#ffc247','#8d72d6','#c968a0','#3f9fa3','#dd9752'];
+  var ivColorSeq = 0;
+  function nextIvColor(){ return IV_COLOR_ROTATION[(ivColorSeq++) % IV_COLOR_ROTATION.length]; }
+  function uid(prefix){ return (prefix||'iv') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  function makeInterval(opts){
+    return Object.assign({
+      id: uid('iv'),
+      name: 'אינטרוול',
+      type: 'time',          // 'time' | 'reps'
+      durationSec: 30,
+      reps: 10,
+      color: nextIvColor(),
+      soundAssignment: null, // null | 'builtin:<id>' | <trackId number>
+      once: false            // true = only before the very first set (e.g. a warm-up "היכון")
+    }, opts);
+  }
+  function makePreset(opts){
+    return Object.assign({
+      id: uid('preset'),
+      name: 'אימון חדש',
+      sets: 1,
+      setRestSec: 0,
+      intervals: []
+    }, opts);
+  }
+  function clonePreset(p){
+    return Object.assign({}, p, { intervals: p.intervals.map(function(iv){ return Object.assign({}, iv); }) });
   }
 
-  // ---------- per-phase sound assignments ----------
-  var assignments = { prepare: null, work: null, rest: null, setrest: null };
-  try{
-    var savedA = JSON.parse(localStorage.getItem('tabata_pulse_music_assign_v2') || '{}');
-    ['prepare','work','rest','setrest'].forEach(function(k){
-      if(savedA[k] != null) assignments[k] = savedA[k];
+  function defaultClassicPreset(){
+    return makePreset({
+      name: 'אימון קלאסי',
+      sets: 99,
+      setRestSec: 0,
+      intervals: [
+        makeInterval({ name:'היכון', durationSec:5, color:'#ffc247', once:true }),
+        makeInterval({ name:'עבודה', durationSec:50, color:'#ff5c5c' }),
+        makeInterval({ name:'מנוחה', durationSec:10, color:'#35d0a0' })
+      ]
     });
-  }catch(e){}
-  function saveAssignments(){
-    try{ localStorage.setItem('tabata_pulse_music_assign_v2', JSON.stringify(assignments)); }catch(e){}
   }
+
+  // Migrates a pre-existing TIGER install (fixed prepare/work/rest/rounds/
+  // sets/setRest model) into one named preset, so updating the app never
+  // loses someone's saved workout. Runs once, the first time the new
+  // preset-list key doesn't exist yet.
+  function migrateOldSettingsToPreset(){
+    var raw = null;
+    try{ raw = localStorage.getItem('tabata_pulse_settings_v1'); }catch(e){}
+    if(!raw) return null;
+    var o;
+    try{ o = Object.assign({ prepare:5, work:50, rest:10, rounds:99, sets:1, setRest:0 }, JSON.parse(raw)); }
+    catch(e){ return null; }
+    var oldLabels = {}, oldColors = {}, oldAssign = {};
+    try{ oldLabels = JSON.parse(localStorage.getItem('tabata_pulse_labels_v1') || '{}'); }catch(e){}
+    try{ oldColors = JSON.parse(localStorage.getItem('tabata_pulse_colors_v1') || '{}'); }catch(e){}
+    try{ oldAssign = JSON.parse(localStorage.getItem('tabata_pulse_music_assign_v2') || '{}'); }catch(e){}
+    var intervals = [];
+    if(o.prepare > 0){
+      intervals.push(makeInterval({
+        name: oldLabels.prepare || 'היכון', durationSec: o.prepare,
+        color: oldColors.prepare || '#ffc247',
+        soundAssignment: oldAssign.prepare != null ? oldAssign.prepare : null,
+        once: true
+      }));
+    }
+    intervals.push(makeInterval({
+      name: oldLabels.work || 'עבודה', durationSec: o.work,
+      color: oldColors.work || '#ff5c5c',
+      soundAssignment: oldAssign.work != null ? oldAssign.work : null
+    }));
+    if(o.rest > 0){
+      intervals.push(makeInterval({
+        name: oldLabels.rest || 'מנוחה', durationSec: o.rest,
+        color: oldColors.rest || '#35d0a0',
+        soundAssignment: oldAssign.rest != null ? oldAssign.rest : null
+      }));
+    }
+    return makePreset({
+      name: 'האימון שלי',
+      sets: Math.max(1, (o.rounds||1) * (o.sets||1)),
+      setRestSec: o.setRest > 0 ? o.setRest : 0,
+      intervals: intervals
+    });
+  }
+
+  // ---------- presets store ----------
+  var PRESETS_KEY = 'tiger_presets_v1';
+  var LAST_PRESET_KEY = 'tiger_last_preset_id_v1';
+  var presets = [];
+  try{
+    var rawPresets = localStorage.getItem(PRESETS_KEY);
+    if(rawPresets) presets = JSON.parse(rawPresets) || [];
+  }catch(e){ presets = []; }
+  if(!presets.length){
+    var migrated = migrateOldSettingsToPreset();
+    presets = [migrated || defaultClassicPreset()];
+  }
+  function savePresets(){ try{ localStorage.setItem(PRESETS_KEY, JSON.stringify(presets)); }catch(e){} }
+  savePresets();
+
+  function findPreset(id){ return presets.filter(function(p){ return p.id === id; })[0] || null; }
+  var currentPresetId = null;
+  try{ currentPresetId = localStorage.getItem(LAST_PRESET_KEY); }catch(e){}
+  var currentPreset = findPreset(currentPresetId) || presets[0];
+  currentPresetId = currentPreset.id;
+  function saveCurrentPresetId(){ try{ localStorage.setItem(LAST_PRESET_KEY, currentPresetId); }catch(e){} }
+  saveCurrentPresetId();
+  function setCurrentPreset(p){ currentPreset = p; currentPresetId = p.id; saveCurrentPresetId(); }
+
+  // ---------- quickstart (ad-hoc, remembered last values) ----------
+  var QS_KEY = 'tiger_quickstart_v1';
+  var qs = { sets: 8, work: 30, rest: 10 };
+  try{
+    var rawQs = localStorage.getItem(QS_KEY);
+    if(rawQs) qs = Object.assign({}, qs, JSON.parse(rawQs));
+  }catch(e){}
+  function saveQs(){ try{ localStorage.setItem(QS_KEY, JSON.stringify(qs)); }catch(e){} }
+  function quickstartPreset(name){
+    return makePreset({
+      name: name || 'התחלה מהירה',
+      sets: qs.sets,
+      setRestSec: 0,
+      intervals: [
+        makeInterval({ name:'עבודה', durationSec: qs.work, color:'#ff5c5c' }),
+        makeInterval({ name:'מנוחה', durationSec: qs.rest, color:'#35d0a0' })
+      ]
+    });
+  }
+
+  var SETREST_IV = { id:'__setrest__', name:'מנוחה בין סטים', type:'time', color:'#4f8fce', soundAssignment:null, once:false, _cueKind:'setrest' };
 
   // ---------- build the workout plan as a flat list of phases ----------
-  function buildPlan(s){
+  // `once` intervals (e.g. a single warm-up) run exactly once, before the
+  // very first set; everything else repeats `sets` times, with an optional
+  // rest between each repeat.
+  function pushIntervalPhase(plan, iv, setNum, totalSets){
+    if(iv.type === 'reps'){
+      plan.push({ phase: iv.id, dur: 0, reps: Math.max(1, iv.reps||1), round:setNum, set:setNum, sets:totalSets, iv: iv });
+    } else if((iv.durationSec||0) > 0){
+      plan.push({ phase: iv.id, dur: iv.durationSec, round:setNum, set:setNum, sets:totalSets, iv: iv });
+    }
+  }
+  function buildPlan(preset){
     var plan = [];
-    if(s.prepare > 0) plan.push({ phase:'prepare', dur: s.prepare });
-    for(var set=1; set<=s.sets; set++){
-      for(var r=1; r<=s.rounds; r++){
-        if(s.work > 0) plan.push({ phase:'work', dur: s.work, round:r, set:set });
-        var isLastRoundOfSet = (r === s.rounds);
-        if(!isLastRoundOfSet && s.rest > 0){
-          plan.push({ phase:'rest', dur: s.rest, round:r, set:set });
-        }
-      }
-      var isLastSet = (set === s.sets);
-      if(!isLastSet && s.setRest > 0){
-        plan.push({ phase:'setrest', dur: s.setRest, set:set });
+    var sets = Math.max(1, preset.sets||1);
+    var onceIvs = preset.intervals.filter(function(iv){ return iv.once; });
+    var loopIvs = preset.intervals.filter(function(iv){ return !iv.once; });
+    onceIvs.forEach(function(iv){ iv._cueKind = 'prepare'; });
+    loopIvs.forEach(function(iv, idx){ iv._cueKind = idx === 0 ? 'work' : 'rest'; });
+    onceIvs.forEach(function(iv){ pushIntervalPhase(plan, iv, 1, sets); });
+    for(var s=1; s<=sets; s++){
+      loopIvs.forEach(function(iv){ pushIntervalPhase(plan, iv, s, sets); });
+      if(s < sets && preset.setRestSec > 0){
+        plan.push({ phase:'__setrest__', dur: preset.setRestSec, set:s, sets:sets, iv: SETREST_IV });
       }
     }
     plan.push({ phase:'done', dur: 0 });
@@ -1134,13 +1593,18 @@
   }
 
   // ---------- timer state ----------
-  var plan = buildPlan(settings);
+  var plan = buildPlan(currentPreset);
   var stepIndex = 0;
   var running = false;
   var phaseEndAt = null;
   var phaseRemainingMs = null;
   var tickHandle = null;
   var lastBeepSecond = null;
+  // Tracks whether a workout is currently underway (running or paused),
+  // independent of phaseEndAt/phaseRemainingMs — a paused reps-type
+  // interval has neither set, so those alone can't tell "paused" from
+  // "never started".
+  var inProgress = false;
 
   // ---------- keep the screen awake during a workout ----------
   // This is what actually fixes "the phone turns off and it stops": the
@@ -1167,6 +1631,7 @@
   });
 
   var phasePill = document.getElementById('phasePill');
+  var runCounter = document.getElementById('runCounter');
   var ringProgress = document.getElementById('ringProgress');
   var timeDisplay = document.getElementById('timeDisplay');
   var roundsDisplay = document.getElementById('roundsDisplay');
@@ -1190,23 +1655,7 @@
   var RING_C = 2 * Math.PI * RING_R;
   ringProgress.style.strokeDasharray = RING_C.toFixed(2);
 
-  var DEFAULT_LABELS = { prepare: 'היכון', work: 'עבודה', rest: 'מנוחה', setrest: 'מנוחה בין סטים' };
   var FIXED_LABELS = { done: 'סיימת!', idle: 'מוכן להתחיל' };
-  var labels = Object.assign({}, DEFAULT_LABELS);
-  try{
-    var savedLabels = JSON.parse(localStorage.getItem('tabata_pulse_labels_v1') || '{}');
-    Object.keys(DEFAULT_LABELS).forEach(function(k){ if(savedLabels[k]) labels[k] = savedLabels[k]; });
-  }catch(e){}
-  function saveLabels(){ try{ localStorage.setItem('tabata_pulse_labels_v1', JSON.stringify(labels)); }catch(e){} }
-  function labelFor(phase){ return labels[phase] || FIXED_LABELS[phase] || phase; }
-
-  var DEFAULT_COLORS = { prepare: '#ffc247', work: '#ff5c5c', rest: '#35d0a0', setrest: '#4f8fce' };
-  var phaseColors = Object.assign({}, DEFAULT_COLORS);
-  try{
-    var savedColors = JSON.parse(localStorage.getItem('tabata_pulse_colors_v1') || '{}');
-    Object.keys(DEFAULT_COLORS).forEach(function(k){ if(savedColors[k]) phaseColors[k] = savedColors[k]; });
-  }catch(e){}
-  function saveColors(){ try{ localStorage.setItem('tabata_pulse_colors_v1', JSON.stringify(phaseColors)); }catch(e){} }
 
   function fmtTime(totalSec){
     totalSec = Math.max(0, Math.ceil(totalSec));
@@ -1216,29 +1665,46 @@
   }
   function currentStyle(){ return getComputedStyle(document.documentElement); }
 
+  var IDLE_STEP = { phase:'idle', dur:0, iv:null };
+  function currentStepOrIdle(){
+    if(stepIndex===0 && !running && phaseRemainingMs===null) return IDLE_STEP;
+    return plan[stepIndex] || IDLE_STEP;
+  }
   function renderIdleFrame(){
-    var step = plan[stepIndex] || {phase:'idle', dur:0};
-    var label = stepIndex===0 && !running ? labelFor('idle') : labelFor(step.phase);
-    setPill(stepIndex===0 && !running ? 'idle' : step.phase, label);
+    var step = currentStepOrIdle();
+    setPill(step);
     timeDisplay.textContent = fmtTime(step.dur || 0);
-    setRingColor(stepIndex===0 && !running ? 'idle' : step.phase);
+    setRingColor(step);
     setRingFraction(0);
     updateRoundsDisplay(step);
+    updateRunCounter(step);
     nowPlaying.textContent = '';
     nowPlaying.className = 'now-playing';
   }
 
-  function setPill(kind, label){
-    phasePill.className = 'phase-pill ' + kind;
-    phasePill.textContent = label;
+  function stepLabel(step){
+    if(step.phase === 'idle') return FIXED_LABELS.idle;
+    if(step.phase === 'done') return FIXED_LABELS.done;
+    return (step.iv && step.iv.name) || step.phase;
+  }
+  function stepColor(step){
+    if(!step.iv) return null;
+    return step.iv.color || null;
+  }
+  function setPill(step){
+    var kind = step.phase === 'idle' ? 'idle' : (step.phase === 'done' ? 'done' : 'work');
+    phasePill.className = 'phase-pill big ' + kind;
+    phasePill.textContent = stepLabel(step);
     if(activeFloodColor){
-      // The whole card is already painted in this color, so the pill needs
-      // strong contrast rather than more of the same hue.
-      phasePill.style.background = 'rgba(0,0,0,.32)';
-      phasePill.style.color = '#fff';
+      // The whole card is already painted in this color — match the
+      // reference app's look of plain bold caps sitting directly on the
+      // flood, no chip background. The CSS (.stage.flooded .phase-pill.big)
+      // handles the actual color/size; just clear any inline override.
+      phasePill.style.background = '';
+      phasePill.style.color = '';
       return;
     }
-    var color = phaseColors[kind] || null;
+    var color = stepColor(step);
     if(color){
       phasePill.style.background = color + '2a';
       phasePill.style.color = color;
@@ -1247,11 +1713,11 @@
       phasePill.style.color = '';
     }
   }
-  function setRingColor(phase){
-    var fallback = (phase === 'idle')
+  function setRingColor(step){
+    var fallback = (step.phase === 'idle')
       ? currentStyle().getPropertyValue('--text-dim').trim()
       : currentStyle().getPropertyValue('--accent').trim();
-    var color = activeFloodColor || phaseColors[phase] || fallback;
+    var color = activeFloodColor || stepColor(step) || fallback;
     ringProgress.setAttribute('stroke', color);
   }
   // A sound with a color "takes over the screen" while its phase runs.
@@ -1266,33 +1732,49 @@
     floodBg.classList.remove('on');
     stageEl.classList.remove('flooded');
   }
-  function applyFloodForPhase(phase){
-    var assigned = assignments[phase];
+  function applyFloodForStep(step){
+    var iv = step.iv;
     var color = null;
+    var assigned = iv ? iv.soundAssignment : null;
     if(typeof assigned === 'string' && assigned.indexOf('builtin:') === 0){
       var snd = builtinById(assigned.slice('builtin:'.length));
       if(snd && snd.color) color = snd.color;
     }
-    // A phase's own color (set in Settings) also takes over the whole
-    // screen while that phase is running — not just a sound's color.
-    if(!color) color = phaseColors[phase] || null;
+    // An interval's own color also takes over the whole screen while it's
+    // running — not just a sound's color.
+    if(!color && iv) color = iv.color || null;
     if(color) setFlood(color); else clearFlood();
   }
   function setRingFraction(frac){
     var offset = RING_C * (1 - frac);
     ringProgress.style.strokeDashoffset = offset.toFixed(2);
   }
+  function updateRunCounter(step){
+    if(step.phase === 'idle' || step.phase === 'done'){ runCounter.hidden = true; return; }
+    if(step.reps != null){
+      runCounter.hidden = false;
+      runCounter.textContent = (step.repsDone||0) + ' / ' + step.reps;
+      return;
+    }
+    if((step.sets||1) > 1){
+      runCounter.hidden = false;
+      runCounter.textContent = step.set + ' / ' + step.sets;
+    } else {
+      runCounter.hidden = true;
+    }
+  }
   function updateRoundsDisplay(step){
-    if(step.phase === 'work' || step.phase === 'rest'){
-      var txt = 'סבב ' + step.round + ' מתוך ' + settings.rounds;
-      if(settings.sets > 1) txt += '  ·  סט ' + step.set + '/' + settings.sets;
-      roundsDisplay.textContent = txt;
-    } else if(step.phase === 'setrest'){
-      roundsDisplay.textContent = 'לפני סט ' + (step.set+1) + '/' + settings.sets;
+    if(step.phase === 'idle'){
+      var ivCount = currentPreset.intervals.length;
+      roundsDisplay.textContent = currentPreset.name + ' · ' + currentPreset.sets + ' סטים · ' + ivCount + ' אינטרוולים';
     } else if(step.phase === 'done'){
       roundsDisplay.textContent = 'כל הכבוד!';
+    } else if(step.phase === '__setrest__'){
+      roundsDisplay.textContent = 'לפני סט ' + (step.set+1) + '/' + step.sets;
+    } else if(step.reps != null){
+      roundsDisplay.textContent = 'הקש כדי להתקדם';
     } else {
-      roundsDisplay.textContent = settings.rounds + ' סבבים · ' + settings.work + '/' + settings.rest + ' שנ\'';
+      roundsDisplay.textContent = (step.sets||1) > 1 ? ('סט ' + step.set + '/' + step.sets) : '';
     }
   }
 
@@ -1469,38 +1951,165 @@
     var step = plan[stepIndex];
     if(!step){ finishWorkout(); return; }
     if(step.phase === 'done'){ finishWorkout(); return; }
-    applyFloodForPhase(step.phase);
-    setPill(step.phase, labelFor(step.phase));
-    setRingColor(step.phase);
+    step.repsDone = 0;
+    applyFloodForStep(step);
+    setPill(step);
+    setRingColor(step);
     updateRoundsDisplay(step);
-    cuePhaseStart(step.phase);
-    vibrate(step.phase === 'work' ? [40] : [15,60,15]);
+    updateRunCounter(step);
+    var cueKind = (step.iv && step.iv._cueKind) || 'work';
+    cuePhaseStart(cueKind);
+    vibrate(cueKind === 'work' ? [40] : [15,60,15]);
     lastBeepSecond = null;
-    if(autoStartTimer){ phaseEndAt = Date.now() + step.dur*1000; }
-    applyPhaseMusic(step.phase);
+    if(autoStartTimer && step.reps == null){ phaseEndAt = Date.now() + step.dur*1000; }
+    else { phaseEndAt = null; }
+    if(step.reps != null){
+      // No countdown for a reps-based interval — show reps remaining and
+      // wait for taps (see advanceRep/stageEl click handler) instead.
+      timeDisplay.textContent = String(step.reps - step.repsDone);
+      setRingFraction(0);
+    }
+    applyPhaseMusicForStep(step);
   }
+
+  // A rep-counted ("REPS") interval doesn't count down — the person taps the
+  // stage once per rep, and it advances to the next phase once all reps are
+  // logged.
+  function advanceRep(){
+    var step = plan[stepIndex];
+    if(!step || step.reps == null) return;
+    step.repsDone = (step.repsDone||0) + 1;
+    vibrate([25]);
+    if(step.repsDone >= step.reps){
+      goToStep(stepIndex+1, true);
+    } else {
+      updateRunCounter(step);
+      timeDisplay.textContent = String(step.reps - step.repsDone);
+    }
+  }
+  stageEl.addEventListener('click', function(e){
+    if(e.target.closest('.controls')) return; // don't double-fire on start/reset/skip taps
+    if(e.target.closest('#timeEditGroup')) return; // editing the number, not a rep tap
+    var step = plan[stepIndex];
+    if(running && step && step.reps != null) advanceRep();
+  });
+
+  // ---------- long-press the countdown to edit the remaining time ----------
+  // Holding a finger on the big number mid-workout is faster than opening
+  // settings to nudge a phase's remaining time — e.g. "actually give this
+  // round another 20 seconds" without stopping and restarting the whole
+  // preset. Only makes sense for a time-type phase that's actually running
+  // or paused mid-way (not idle, not a reps-type phase, not "done").
+  var timeEditGroup = document.getElementById('timeEditGroup');
+  var timeEditMin = document.getElementById('timeEditMin');
+  var timeEditSec = document.getElementById('timeEditSec');
+  var longPressTimer = null;
+  var longPressStartXY = null;
+  var editingTime = false;
+
+  function currentRemainingSec(){
+    if(phaseRemainingMs !== null) return phaseRemainingMs/1000;
+    if(phaseEndAt !== null) return Math.max(0, (phaseEndAt - Date.now())/1000);
+    return 0;
+  }
+  function canEditRemainingTime(){
+    if(!inProgress) return false;
+    var step = plan[stepIndex];
+    return !!(step && step.reps == null && step.phase !== 'idle' && step.phase !== 'done');
+  }
+  function openTimeEdit(){
+    if(editingTime || !canEditRemainingTime()) return;
+    editingTime = true;
+    var wasRunning = running;
+    if(wasRunning) startOrResume(); // pauses — keeps every pause side-effect (wake lock, music, button label) in one place
+    var remaining = Math.round(currentRemainingSec());
+    timeEditMin.value = Math.floor(remaining/60);
+    timeEditSec.value = remaining % 60;
+    timeDisplay.hidden = true;
+    timeEditGroup.hidden = false;
+    timeEditMin.focus();
+    timeEditMin.select();
+    timeEditGroup.dataset.wasRunning = wasRunning ? '1' : '';
+  }
+  function closeTimeEdit(commit){
+    if(!editingTime) return;
+    editingTime = false;
+    if(commit){
+      var mm = parseInt(timeEditMin.value, 10); if(isNaN(mm)) mm = 0;
+      var ss = parseInt(timeEditSec.value, 10); if(isNaN(ss)) ss = 0;
+      ss = Math.max(0, Math.min(59, ss));
+      mm = Math.max(0, Math.min(99, mm));
+      var newMs = (mm*60 + ss) * 1000;
+      phaseRemainingMs = newMs;
+      phaseEndAt = null;
+      timeDisplay.textContent = fmtTime(newMs/1000);
+      setRingFraction(0);
+    }
+    timeEditGroup.hidden = true;
+    timeDisplay.hidden = false;
+    var wasRunning = timeEditGroup.dataset.wasRunning === '1';
+    if(wasRunning) startOrResume(); // resumes from the (possibly just-edited) phaseRemainingMs
+  }
+  timeEditMin.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); timeEditSec.focus(); timeEditSec.select(); }
+    else if(e.key === 'Escape'){ closeTimeEdit(false); }
+  });
+  timeEditSec.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); closeTimeEdit(true); }
+    else if(e.key === 'Escape'){ closeTimeEdit(false); }
+  });
+  timeEditGroup.addEventListener('focusout', function(){
+    // Only close once focus has left BOTH boxes (not when tabbing between them).
+    setTimeout(function(){
+      if(!timeEditGroup.contains(document.activeElement)) closeTimeEdit(true);
+    }, 0);
+  });
+
+  function cancelLongPress(){
+    if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+    longPressStartXY = null;
+  }
+  timeDisplay.addEventListener('pointerdown', function(e){
+    if(!canEditRemainingTime()) return;
+    longPressStartXY = { x: e.clientX, y: e.clientY };
+    longPressTimer = setTimeout(function(){
+      longPressTimer = null;
+      vibrate([20]);
+      openTimeEdit();
+    }, 550);
+  });
+  timeDisplay.addEventListener('pointermove', function(e){
+    if(!longPressStartXY) return;
+    var dx = e.clientX - longPressStartXY.x, dy = e.clientY - longPressStartXY.y;
+    if(Math.sqrt(dx*dx + dy*dy) > 12) cancelLongPress();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(evt){
+    timeDisplay.addEventListener(evt, cancelLongPress);
+  });
 
   function finishWorkout(){
     running = false;
+    inProgress = false;
     releaseWakeLock();
     stopTick();
     clearFlood();
-    setPill('done', labelFor("done"));
-    setRingColor('done');
+    setPill({ phase:'done' });
+    setRingColor({ phase:'done' });
     setRingFraction(1);
     timeDisplay.textContent = '00:00';
     roundsDisplay.textContent = 'כל הכבוד!';
+    runCounter.hidden = true;
     cuePhaseStart('done');
     vibrate([80,60,80,60,120]);
     setStartBtnLabel(ICON_RESTART, 'אימון חדש');
     startBtn.disabled = false;
-    applyPhaseMusic('done');
+    applyPhaseMusicForStep({ iv: null });
     updateTransportButtons();
   }
 
   // Enabled once a workout is running or paused mid-way; disabled while idle or finished.
   function updateTransportButtons(){
-    var active = running || phaseRemainingMs !== null;
+    var active = inProgress;
     restartRoundBtn.disabled = !active;
     skipBtn.disabled = !active;
   }
@@ -1508,14 +2117,14 @@
   // Jump to a given step while preserving whether the workout is currently
   // running or paused (used by both "restart round" and "skip").
   function goToStepKeepingRunState(newIdx){
-    if(!running && phaseRemainingMs === null) return; // not started yet
+    if(!inProgress) return; // not started yet
     var wasRunning = running;
     goToStep(newIdx, true);
     var step = plan[stepIndex];
     if(!step || step.phase === 'done'){ updateTransportButtons(); return; }
     if(wasRunning){
       startTick();
-    } else {
+    } else if(step.reps == null){
       phaseRemainingMs = Math.max(0, phaseEndAt - Date.now());
       phaseEndAt = null;
       stopTick();
@@ -1557,22 +2166,30 @@
       requestWakeLock();
       setStartBtnLabel(ICON_PAUSE, 'השהה');
       resetBtn.disabled = false;
-      if(phaseEndAt === null){
-        plan = buildPlan(settings);
+      if(!inProgress){
+        inProgress = true;
+        plan = buildPlan(currentPreset);
         stepIndex = 0;
         goToStep(0, true);
       } else if(phaseRemainingMs !== null){
         phaseEndAt = Date.now() + phaseRemainingMs;
         phaseRemainingMs = null;
-        applyFloodForPhase(plan[stepIndex].phase);
-        applyPhaseMusic(plan[stepIndex].phase);
+        applyFloodForStep(plan[stepIndex]);
+        applyPhaseMusicForStep(plan[stepIndex]);
+      } else if(plan[stepIndex] && plan[stepIndex].reps != null){
+        // Resuming from a pause mid-way through a reps-type interval:
+        // there's no countdown to restart, just the flood/sound.
+        applyFloodForStep(plan[stepIndex]);
+        applyPhaseMusicForStep(plan[stepIndex]);
       }
       startTick();
     } else {
       running = false;
       releaseWakeLock();
       setStartBtnLabel(ICON_PLAY, 'המשך');
-      phaseRemainingMs = Math.max(0, phaseEndAt - Date.now());
+      if(plan[stepIndex] && plan[stepIndex].reps == null){
+        phaseRemainingMs = Math.max(0, phaseEndAt - Date.now());
+      }
       stopTick();
       pauseMusic();
     }
@@ -1581,18 +2198,26 @@
 
   function resetWorkout(){
     running = false;
+    inProgress = false;
     releaseWakeLock();
     stopTick();
     phaseEndAt = null;
     phaseRemainingMs = null;
     stepIndex = 0;
-    plan = buildPlan(settings);
+    plan = buildPlan(currentPreset);
     setStartBtnLabel(ICON_PLAY, 'התחל');
     startBtn.disabled = false;
     stopMusic();
     clearFlood();
     renderIdleFrame();
     updateTransportButtons();
+  }
+  // Loads a preset as the current one and starts the run immediately —
+  // used by "▶ התחל" on a saved preset and "⚡ התחל" in quickstart.
+  function startPresetNow(preset){
+    setCurrentPreset(preset);
+    resetWorkout();
+    startOrResume();
   }
 
   startBtn.addEventListener('click', startOrResume);
@@ -1729,7 +2354,6 @@
   });
   var openSegmentEditorId = null;
 
-  var soundSelects = Array.prototype.slice.call(document.querySelectorAll('.soundSelect'));
   var tracksManage = document.getElementById('tracksManage');
   var tracksEmpty = document.getElementById('tracksEmpty');
   var fileInput = document.getElementById('fileInput');
@@ -1759,44 +2383,54 @@
     return null;
   }
 
-  function renderSoundSelects(){
-    soundSelects.forEach(function(sel){
-      var phase = sel.getAttribute('data-phase');
-      var current = assignments[phase];
-      sel.innerHTML = '';
-      var optNone = document.createElement('option');
-      optNone.value = '';
-      optNone.textContent = 'ללא צליל נוסף (רק ביפים קצרים)';
-      sel.appendChild(optNone);
+  // Fills (or refreshes) one <select class="soundSelect"> with the builtin
+  // cues + the person's uploaded tracks, reflecting `iv.soundAssignment`.
+  // Used for the per-interval sound picker in the advanced editor.
+  function fillSoundSelect(sel, iv){
+    var current = iv ? iv.soundAssignment : null;
+    sel.innerHTML = '';
+    var optNone = document.createElement('option');
+    optNone.value = '';
+    optNone.textContent = 'ללא צליל נוסף (רק ביפים קצרים)';
+    sel.appendChild(optNone);
 
-      var ogBuiltin = document.createElement('optgroup');
-      ogBuiltin.label = '— צלילים מובנים —';
-      BUILTIN_SOUNDS.forEach(function(s){
+    var ogBuiltin = document.createElement('optgroup');
+    ogBuiltin.label = '— צלילים מובנים —';
+    BUILTIN_SOUNDS.forEach(function(s){
+      var opt = document.createElement('option');
+      opt.value = 'builtin:' + s.id;
+      opt.textContent = s.name;
+      ogBuiltin.appendChild(opt);
+    });
+    sel.appendChild(ogBuiltin);
+
+    if(tracks.length){
+      var ogTracks = document.createElement('optgroup');
+      ogTracks.label = '— השירים שהעלית —';
+      tracks.forEach(function(t){
         var opt = document.createElement('option');
-        opt.value = 'builtin:' + s.id;
-        opt.textContent = s.name;
-        ogBuiltin.appendChild(opt);
+        opt.value = String(t.id);
+        opt.textContent = t.name;
+        ogTracks.appendChild(opt);
       });
-      sel.appendChild(ogBuiltin);
+      sel.appendChild(ogTracks);
+    }
 
-      if(tracks.length){
-        var ogTracks = document.createElement('optgroup');
-        ogTracks.label = '— השירים שהעלית —';
-        tracks.forEach(function(t){
-          var opt = document.createElement('option');
-          opt.value = String(t.id);
-          opt.textContent = t.name;
-          ogTracks.appendChild(opt);
-        });
-        sel.appendChild(ogTracks);
-      }
-
-      var val = '';
-      if(current != null){
-        if(typeof current === 'string') val = current;
-        else if(tracks.some(function(t){ return t.id === current; })) val = String(current);
-      }
-      sel.value = val;
+    var val = '';
+    if(current != null){
+      if(typeof current === 'string') val = current;
+      else if(tracks.some(function(t){ return t.id === current; })) val = String(current);
+    }
+    sel.value = val;
+  }
+  // Refreshes every per-interval sound <select> currently rendered inside
+  // the open advanced editor (e.g. after the track list changes).
+  function renderSoundSelects(){
+    if(!editingPreset) return;
+    document.querySelectorAll('.soundSelect').forEach(function(sel){
+      var ivId = sel.getAttribute('data-iv');
+      var iv = editingPreset.intervals.filter(function(x){ return x.id === ivId; })[0];
+      if(iv) fillSoundSelect(sel, iv);
     });
   }
 
@@ -1938,7 +2572,7 @@
         openSegmentEditorId = null;
         if(currentTrackId === t.id){
           var step = plan[stepIndex];
-          if(step) applyPhaseMusic(step.phase);
+          if(step) applyPhaseMusicForStep(step);
         }
         loadTracksFromDB();
       });
@@ -1964,13 +2598,18 @@
       row.querySelector('.segbtn').addEventListener('click', function(){ toggleSegmentEditor(t.id); });
       row.querySelector('.del').addEventListener('click', function(){
         idbDelete(t.id).then(function(){
-          ['prepare','work','rest','setrest'].forEach(function(k){
-            if(assignments[k] === t.id) assignments[k] = null;
+          // Clear this track from every interval of every preset that had
+          // it assigned, not just a fixed set of phase keys.
+          presets.forEach(function(p){
+            p.intervals.forEach(function(iv){
+              if(iv.soundAssignment === t.id) iv.soundAssignment = null;
+            });
           });
-          saveAssignments();
+          savePresets();
           if(currentTrackId === t.id) stopMusic();
           if(openSegmentEditorId === t.id) openSegmentEditorId = null;
           loadTracksFromDB();
+          renderEditorIntervals();
         });
       });
       tracksManage.appendChild(row);
@@ -2014,21 +2653,8 @@
   document.addEventListener('touchstart', retryTracksOnFirstGesture, { once:true, passive:true });
   document.addEventListener('click', retryTracksOnFirstGesture, { once:true });
 
-  soundSelects.forEach(function(sel){
-    sel.addEventListener('change', function(){
-      var phase = sel.getAttribute('data-phase');
-      if(sel.value === ''){ assignments[phase] = null; }
-      else if(sel.value.indexOf('builtin:') === 0){ assignments[phase] = sel.value; }
-      else { assignments[phase] = Number(sel.value); }
-      saveAssignments();
-      // live-update if this phase is currently playing
-      var step = plan[stepIndex];
-      if(running && step && step.phase === phase){
-        applyFloodForPhase(phase);
-        applyPhaseMusic(phase);
-      }
-    });
-  });
+  // (Per-interval sound <select> change handling is wired when each
+  // interval card is built — see renderEditorIntervals / wireIvSoundSelect.)
 
   // Direct button → direct click on the (hidden) file input. Kept as a
   // simple, single user gesture so the OS/Drive file picker reliably opens
@@ -2225,8 +2851,8 @@
 
   // The only place playback is driven from: called whenever the timer enters
   // a phase. A phase with no assigned sound is silent (cues still beep).
-  function applyPhaseMusic(phase){
-    var assigned = assignments[phase];
+  function applyPhaseMusicForStep(step){
+    var assigned = (step && step.iv) ? step.iv.soundAssignment : null;
     if(assigned == null){ stopMusic(); return; }
     if(typeof assigned === 'string' && assigned.indexOf('builtin:') === 0){
       var soundId = assigned.slice('builtin:'.length);
@@ -2245,81 +2871,48 @@
     }
   }
 
-  // ---------- settings sheet ----------
-  var settingsOverlay = document.getElementById('settingsOverlay');
-  var settingsBtn = document.getElementById('settingsBtn');
-  var closeSettingsBtn = document.getElementById('closeSettingsBtn');
-  var applySettingsBtn = document.getElementById('applySettingsBtn');
-  var draft = Object.assign({}, settings);
-
-  // rounds/sets are plain counts; every other stepper key is a duration in
-  // seconds that should be shown and typed as minutes:seconds.
-  function isTimeKey(key){ return key !== 'rounds' && key !== 'sets'; }
-
-  function renderSteppers(){
-    document.querySelectorAll('.stepper').forEach(function(el){
-      var key = el.getAttribute('data-key');
-      var span = el.querySelector('span');
-      if(span) span.textContent = isTimeKey(key) ? fmtTime(draft[key]) : draft[key];
+  // ---------- generic stepper wiring (reused for quickstart, preset
+  // sets/rest, and every interval's own duration/reps stepper) ----------
+  // opts: {get, set, min, max, step, isTime, onChange}
+  function wireStepper(el, opts){
+    var span = el.querySelector('span');
+    if(!span) return;
+    function render(){ span.textContent = opts.isTime ? fmtTime(opts.get()) : String(opts.get()); }
+    var buttons = Array.prototype.slice.call(el.querySelectorAll('button'));
+    buttons.forEach(function(btn){
+      btn.onclick = function(){
+        var dir = parseInt(btn.getAttribute('data-dir'), 10);
+        var next = Math.max(opts.min, Math.min(opts.max, opts.get() + dir*opts.step));
+        opts.set(next);
+        render();
+        if(opts.onChange) opts.onChange();
+      };
     });
-  }
-  document.querySelectorAll('.stepper button').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var wrap = btn.closest('.stepper');
-      var key = wrap.getAttribute('data-key');
-      var dir = parseInt(btn.getAttribute('data-dir'), 10);
-      var lim = LIMITS[key];
-      var next = Math.max(lim[0], Math.min(lim[1], draft[key] + dir*lim[2]));
-      draft[key] = next;
-      renderSteppers();
-    });
-  });
-
-  // Tapping the number itself opens a real number input so an exact value can be typed.
-  document.querySelectorAll('.stepper span').forEach(function(span){
     span.setAttribute('tabindex', '0');
     span.title = 'לחץ כדי להקליד מספר מדויק';
     function beginEdit(){
-      var wrap = span.closest('.stepper');
-      var key = wrap.getAttribute('data-key');
-      var lim = LIMITS[key];
-      var timeKey = isTimeKey(key);
-
-      if(timeKey){
-        // Two separate boxes (minutes, seconds) instead of one "mm:ss" text
-        // field — a colon isn't reachable from the numeric keypad mobile
-        // browsers show for a text input, and a single field also gets its
-        // whole value selected on focus, making it awkward to edit just one
-        // part. Each box is its own number input the person taps into directly.
+      if(opts.isTime){
         var group = document.createElement('span');
         group.className = 'time-input-group';
-
-        var startTotal = draft[key];
+        var startTotal = opts.get();
         var mmInput = document.createElement('input');
         mmInput.type = 'number';
         mmInput.className = 'stepper-input-part';
-        mmInput.min = 0; mmInput.max = Math.floor(lim[1]/60);
+        mmInput.min = 0; mmInput.max = Math.floor(opts.max/60);
         mmInput.value = Math.floor(startTotal/60);
         mmInput.setAttribute('aria-label', 'דקות');
-
         var colon = document.createElement('span');
         colon.className = 'time-colon';
         colon.textContent = ':';
-
         var ssInput = document.createElement('input');
         ssInput.type = 'number';
         ssInput.className = 'stepper-input-part';
         ssInput.min = 0; ssInput.max = 59;
         ssInput.value = startTotal % 60;
         ssInput.setAttribute('aria-label', 'שניות');
-
-        group.appendChild(mmInput);
-        group.appendChild(colon);
-        group.appendChild(ssInput);
-        wrap.replaceChild(group, span);
-        mmInput.focus();
-        mmInput.select();
-
+        group.appendChild(mmInput); group.appendChild(colon); group.appendChild(ssInput);
+        el.replaceChild(group, span);
+        mmInput.focus(); mmInput.select();
         var committed = false;
         function commit(){
           if(committed) return;
@@ -2327,20 +2920,15 @@
           var mm = parseInt(mmInput.value, 10); if(isNaN(mm)) mm = 0;
           var ss = parseInt(ssInput.value, 10); if(isNaN(ss)) ss = 0;
           ss = Math.max(0, Math.min(59, ss));
-          var val = mm*60 + ss;
-          val = Math.max(lim[0], Math.min(lim[1], val));
-          draft[key] = val;
-          wrap.replaceChild(span, group);
-          renderSteppers();
+          var val = Math.max(opts.min, Math.min(opts.max, mm*60 + ss));
+          opts.set(val);
+          el.replaceChild(span, group);
+          render();
+          if(opts.onChange) opts.onChange();
         }
-        // Committing only when focus leaves both boxes (not when tabbing
-        // from minutes to seconds) — a short delay lets the new focus land
-        // before checking where it went.
         function scheduleCommitCheck(){
           setTimeout(function(){
-            if(document.activeElement !== mmInput && document.activeElement !== ssInput){
-              commit();
-            }
+            if(document.activeElement !== mmInput && document.activeElement !== ssInput) commit();
           }, 0);
         }
         mmInput.addEventListener('blur', scheduleCommitCheck);
@@ -2353,155 +2941,49 @@
           if(e.key === 'Enter'){ e.preventDefault(); commit(); }
           else if(e.key === 'Escape'){ mmInput.blur(); ssInput.blur(); commit(); }
         });
-        // Typing 2 digits into minutes jumps straight to seconds, matching
-        // how a native time picker behaves.
         mmInput.addEventListener('input', function(){
           if(mmInput.value.length >= 2){ ssInput.focus(); ssInput.select(); }
         });
         return;
       }
-
       var input = document.createElement('input');
       input.className = 'stepper-input';
       input.type = 'number';
-      input.min = lim[0]; input.max = lim[1]; input.step = lim[2];
-      input.value = draft[key];
-      wrap.replaceChild(input, span);
-      input.focus();
-      input.select();
+      input.min = opts.min; input.max = opts.max; input.step = opts.step;
+      input.value = opts.get();
+      el.replaceChild(input, span);
+      input.focus(); input.select();
       var countCommitted = false;
       function commitCount(){
         if(countCommitted) return;
         countCommitted = true;
         var val = parseInt(input.value, 10);
-        if(isNaN(val)) val = draft[key];
-        val = Math.max(lim[0], Math.min(lim[1], val));
-        draft[key] = val;
-        wrap.replaceChild(span, input);
-        renderSteppers();
+        if(isNaN(val)) val = opts.get();
+        val = Math.max(opts.min, Math.min(opts.max, val));
+        opts.set(val);
+        el.replaceChild(span, input);
+        render();
+        if(opts.onChange) opts.onChange();
       }
       input.addEventListener('blur', commitCount);
       input.addEventListener('keydown', function(e){
         if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
-        else if(e.key === 'Escape'){ input.value = draft[key]; input.blur(); }
+        else if(e.key === 'Escape'){ input.value = opts.get(); input.blur(); }
       });
     }
-    span.addEventListener('click', beginEdit);
-    span.addEventListener('keydown', function(e){
-      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); beginEdit(); }
-    });
-  });
-
-  // ---------- editable phase names ----------
-  function applyLabelsToDOM(){
-    document.querySelectorAll('.phaseLabel').forEach(function(el){
-      var phase = el.getAttribute('data-phase');
-      el.textContent = labels[phase];
-    });
+    span.onclick = beginEdit;
+    span.onkeydown = function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); beginEdit(); } };
+    render();
   }
-  function refreshCurrentLabel(){
-    var kind = (stepIndex===0 && !running && phaseRemainingMs===null) ? 'idle' : ((plan[stepIndex] && plan[stepIndex].phase) || 'idle');
-    setPill(kind, labelFor(kind));
-  }
-  applyLabelsToDOM();
 
-  document.querySelectorAll('.edit-label-btn').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var phase = btn.getAttribute('data-phase');
-      var wrap = btn.closest('.field-label');
-      var labelEl = wrap.querySelector('.phaseLabel');
-      var input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'label-edit-input';
-      input.maxLength = 20;
-      input.value = labels[phase];
-      wrap.replaceChild(input, labelEl);
-      input.focus();
-      input.select();
-      var committed = false;
-      function commit(){
-        if(committed) return;
-        committed = true;
-        var val = input.value.trim();
-        if(val) labels[phase] = val;
-        saveLabels();
-        labelEl.textContent = labels[phase];
-        wrap.replaceChild(labelEl, input);
-        refreshCurrentLabel();
-      }
-      input.addEventListener('blur', commit);
-      input.addEventListener('keydown', function(e){
-        if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
-        else if(e.key === 'Escape'){ input.value = labels[phase]; input.blur(); }
-      });
-    });
-  });
-
-  // ---------- per-phase colors ----------
-  // Muted-but-recognizable standard hues only — nothing neon or "shouting".
-  // Picking one opens a small app-styled popup (not the OS color picker),
-  // reached by tapping a single round swatch that shows the phase's
-  // current color.
+  // ---------- color popup (generalized: any caller passes its own
+  // context + callback instead of a fixed phase key) ----------
   var COLOR_PALETTE = ['#d9635c','#dd9752','#d3bd52','#4fa876','#3f9fa3','#4f8fce','#8d72d6','#c968a0','#8a7a68','#8890a0'];
-
-  function applyColorToInput(phase, hex){
-    var inp = document.querySelector('.phaseColor[data-phase="' + phase + '"]');
-    if(!inp) return;
-    inp.value = hex;
-    inp.dispatchEvent(new Event('input', {bubbles:true}));
-  }
-
-  function refreshColorCurrent(phase){
-    var btn = document.querySelector('.color-current[data-phase="' + phase + '"]');
-    if(btn) btn.style.background = phaseColors[phase] || '';
-  }
-
-  function buildColorPickers(){
-    document.querySelectorAll('.phaseColor').forEach(function(inp){
-      var phase = inp.getAttribute('data-phase');
-      if(inp.dataset.pickerBuilt) return;
-      inp.dataset.pickerBuilt = '1';
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'color-current';
-      btn.setAttribute('data-phase', phase);
-      btn.setAttribute('aria-label', 'בחר צבע לשלב');
-      btn.addEventListener('click', function(){ openColorPopup(phase); });
-      inp.insertAdjacentElement('afterend', btn);
-    });
-  }
-
-  function applyColorsToDOM(){
-    document.querySelectorAll('.phaseColor').forEach(function(inp){
-      var phase = inp.getAttribute('data-phase');
-      inp.value = phaseColors[phase];
-      refreshColorCurrent(phase);
-    });
-  }
-  buildColorPickers();
-  applyColorsToDOM();
-  document.querySelectorAll('.phaseColor').forEach(function(inp){
-    inp.addEventListener('input', function(){
-      var phase = inp.getAttribute('data-phase');
-      phaseColors[phase] = inp.value;
-      saveColors();
-      refreshColorCurrent(phase);
-      var kind = (stepIndex===0 && !running && phaseRemainingMs===null) ? 'idle' : ((plan[stepIndex] && plan[stepIndex].phase) || 'idle');
-      if(kind === phase){
-        setPill(phase, labelFor(phase));
-        setRingColor(phase);
-        if(!(typeof assignments !== 'undefined' && typeof assignments[phase] === 'string' && assignments[phase].indexOf('builtin:') === 0)){
-          applyFloodForPhase(phase);
-        }
-      }
-    });
-  });
-
-  // ---------- color popup ----------
   var colorPopupOverlay = document.getElementById('colorPopupOverlay');
   var colorPopupGrid = document.getElementById('colorPopupGrid');
   var closeColorPopupBtn = document.getElementById('closeColorPopupBtn');
-  var colorPopupPhase = null;
+  var colorPopupCallback = null;
+  var colorPopupCurrentHex = null;
 
   COLOR_PALETTE.forEach(function(hex){
     var sw = document.createElement('button');
@@ -2511,62 +2993,334 @@
     sw.style.background = hex;
     sw.setAttribute('aria-label', 'צבע ' + hex);
     sw.addEventListener('click', function(){
-      if(!colorPopupPhase) return;
-      applyColorToInput(colorPopupPhase, hex);
+      if(colorPopupCallback) colorPopupCallback(hex);
+      colorPopupCurrentHex = hex;
       refreshColorPopupSelection();
       closeColorPopup();
     });
     colorPopupGrid.appendChild(sw);
   });
-
   function refreshColorPopupSelection(){
-    var current = (phaseColors[colorPopupPhase] || '').toLowerCase();
+    var current = (colorPopupCurrentHex || '').toLowerCase();
     colorPopupGrid.querySelectorAll('.color-popup-swatch').forEach(function(sw){
       sw.classList.toggle('selected', sw.getAttribute('data-color').toLowerCase() === current);
     });
   }
-
-  function openColorPopup(phase){
-    colorPopupPhase = phase;
+  function openColorPopup(contextId, callback, currentHex){
+    colorPopupCallback = callback;
+    colorPopupCurrentHex = currentHex;
     refreshColorPopupSelection();
     colorPopupOverlay.hidden = false;
   }
-  function closeColorPopup(){ colorPopupOverlay.hidden = true; colorPopupPhase = null; }
+  function closeColorPopup(){ colorPopupOverlay.hidden = true; colorPopupCallback = null; }
   closeColorPopupBtn.addEventListener('click', closeColorPopup);
   colorPopupOverlay.addEventListener('click', function(e){ if(e.target === colorPopupOverlay) closeColorPopup(); });
 
-  // ---------- reset to factory settings ----------
-  var resetDefaultsBtn = document.getElementById('resetDefaultsBtn');
-  resetDefaultsBtn.addEventListener('click', function(){
-    if(!confirm('לאפס זמנים, סבבים, שמות שלבים וצבעים לברירת המחדל?')) return;
-    draft = Object.assign({}, DEFAULTS);
-    labels = Object.assign({}, DEFAULT_LABELS);
-    phaseColors = Object.assign({}, DEFAULT_COLORS);
-    saveLabels();
-    saveColors();
-    applyLabelsToDOM();
-    applyColorsToDOM();
-    renderSteppers();
-    refreshCurrentLabel();
+  // ---------- quickstart panel ----------
+  var qsPanel = document.getElementById('qsPanel');
+  var qsHead = document.getElementById('qsHead');
+  qsHead.addEventListener('click', function(){ qsPanel.classList.toggle('collapsed'); });
+  wireStepper(document.getElementById('qsSetsStepper'), {
+    get:function(){ return qs.sets; }, set:function(v){ qs.sets = v; saveQs(); }, min:1, max:99, step:1, isTime:false
+  });
+  wireStepper(document.getElementById('qsWorkStepper'), {
+    get:function(){ return qs.work; }, set:function(v){ qs.work = v; saveQs(); }, min:0, max:600, step:5, isTime:true
+  });
+  wireStepper(document.getElementById('qsRestStepper'), {
+    get:function(){ return qs.rest; }, set:function(v){ qs.rest = v; saveQs(); }, min:0, max:300, step:5, isTime:true
+  });
+  document.getElementById('qsSaveBtn').addEventListener('click', function(){
+    var name = prompt('שם לפריסט:', 'אימון מהיר');
+    if(!name) return;
+    var p = quickstartPreset(name.trim());
+    presets.push(p);
+    savePresets();
+    renderPresetsList();
+  });
+  document.getElementById('qsStartBtn').addEventListener('click', function(){
+    var p = quickstartPreset('התחלה מהירה');
+    closeSettings();
+    startPresetNow(p);
   });
 
+  // ---------- presets list ----------
+  var presetsListEl = document.getElementById('presetsList');
+  function presetTotalSec(preset){
+    var total = 0;
+    preset.intervals.forEach(function(iv){
+      if(iv.type !== 'time') return;
+      var reps = iv.once ? 1 : Math.max(1, preset.sets||1);
+      total += (iv.durationSec||0) * reps;
+    });
+    if((preset.sets||1) > 1) total += (preset.setRestSec||0) * (preset.sets - 1);
+    return total;
+  }
+  function renderPresetsList(){
+    presetsListEl.innerHTML = '';
+    if(!presets.length){
+      presetsListEl.innerHTML = '<div class="preset-empty">אין עדיין פריסטים שמורים</div>';
+      return;
+    }
+    presets.forEach(function(p){
+      var card = document.createElement('div');
+      card.className = 'preset-card' + (p.id === currentPresetId ? ' current' : '');
+      card.innerHTML =
+        '<div class="preset-top"><span class="pname"></span><span class="ptotal"></span></div>' +
+        '<div class="preset-segbar"></div>' +
+        '<div class="preset-bottom">' +
+          '<div class="preset-bottom-icons">' +
+            '<button type="button" class="preset-icon-btn pe-dup" title="שכפל"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+            '<button type="button" class="preset-icon-btn pe-edit" title="ערוך"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>' +
+            '<button type="button" class="preset-icon-btn pe-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>' +
+          '</div>' +
+          '<button type="button" class="preset-start-btn pe-start"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>התחל</span></button>' +
+        '</div>';
+      card.querySelector('.pname').textContent = p.name;
+      card.querySelector('.ptotal').textContent = fmtTime(presetTotalSec(p));
+      var bar = card.querySelector('.preset-segbar');
+      var segIvs = p.intervals.filter(function(iv){ return (iv.type==='time' && (iv.durationSec||0) > 0) || iv.type==='reps'; });
+      var segTotal = segIvs.reduce(function(sum, iv){ return sum + (iv.type==='time' ? (iv.durationSec||1) : 20); }, 0) || 1;
+      segIvs.forEach(function(iv){
+        var seg = document.createElement('div');
+        seg.className = 'preset-seg';
+        var w = iv.type==='time' ? (iv.durationSec||1) : 20;
+        var pct = w/segTotal*100;
+        seg.style.width = pct + '%';
+        seg.style.background = iv.color;
+        seg.title = iv.name + (iv.type==='time' ? (' · ' + fmtTime(iv.durationSec)) : (' · ' + iv.reps + ' חזרות'));
+        if(pct > 12) seg.textContent = iv.name;
+        bar.appendChild(seg);
+      });
+      card.querySelector('.pe-edit').addEventListener('click', function(){ openEditor(p.id); });
+      card.querySelector('.pe-del').addEventListener('click', function(){
+        if(!confirm('למחוק את "' + p.name + '"?')) return;
+        presets = presets.filter(function(x){ return x.id !== p.id; });
+        if(!presets.length) presets = [defaultClassicPreset()];
+        savePresets();
+        if(currentPresetId === p.id) setCurrentPreset(presets[0]);
+        renderPresetsList();
+      });
+      card.querySelector('.pe-dup').addEventListener('click', function(){
+        var copy = clonePreset(p);
+        copy.id = uid('preset');
+        copy.name = p.name + ' (עותק)';
+        copy.intervals.forEach(function(iv){ iv.id = uid('iv'); });
+        presets.push(copy);
+        savePresets();
+        renderPresetsList();
+      });
+      card.querySelector('.pe-start').addEventListener('click', function(){
+        closeSettings();
+        startPresetNow(p);
+      });
+      presetsListEl.appendChild(card);
+    });
+  }
+  document.getElementById('addPresetBtn').addEventListener('click', function(){ openEditor(null); });
+
+  // ---------- advanced editor (arbitrary ordered, named, colored
+  // intervals — replaces the old fixed prepare/work/rest/rounds/sets form) ----------
+  var editorOverlay = document.getElementById('editorOverlay');
+  var editorNameField = document.getElementById('editorNameField');
+  var ivListEl = document.getElementById('ivList');
+  var editingPreset = null;
+  var deleteEditorBtn = document.getElementById('deleteEditorBtn');
+
+  function ivIndexOf(id){
+    for(var i=0; i<editingPreset.intervals.length; i++){ if(editingPreset.intervals[i].id === id) return i; }
+    return -1;
+  }
+  function moveInterval(id, dir){
+    var i = ivIndexOf(id), j = i + dir;
+    if(i < 0 || j < 0 || j >= editingPreset.intervals.length) return;
+    var arr = editingPreset.intervals;
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    renderEditorIntervals();
+  }
+  function duplicateInterval(id){
+    var i = ivIndexOf(id);
+    if(i < 0) return;
+    var copy = Object.assign({}, editingPreset.intervals[i]);
+    copy.id = uid('iv');
+    editingPreset.intervals.splice(i+1, 0, copy);
+    renderEditorIntervals();
+  }
+  function deleteInterval(id){
+    if(editingPreset.intervals.length <= 1){ alert('צריך לפחות אינטרוול אחד בפריסט'); return; }
+    editingPreset.intervals = editingPreset.intervals.filter(function(x){ return x.id !== id; });
+    renderEditorIntervals();
+  }
+
+  function buildIvCard(iv, idx, total){
+    var card = document.createElement('div');
+    card.className = 'iv-card';
+    card.style.background = iv.color;
+    card.innerHTML =
+      '<div class="iv-card-top">' +
+        '<input type="text" class="iv-name-input" maxlength="20">' +
+        '<div class="iv-move-btns">' +
+          '<button type="button" class="iv-up" aria-label="הזז למעלה">▲</button>' +
+          '<button type="button" class="iv-down" aria-label="הזז למטה">▼</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="iv-type-toggle">' +
+        '<button type="button" class="iv-type-time">זמן</button>' +
+        '<button type="button" class="iv-type-reps">חזרות</button>' +
+      '</div>' +
+      '<div class="iv-stepper-wrap"></div>' +
+      '<div class="iv-bottom-row">' +
+        '<div class="iv-color-group">' +
+          '<button type="button" class="iv-color-swatch" aria-label="צבע לאינטרוול"></button>' +
+          '<span class="iv-color-label">צבע</span>' +
+        '</div>' +
+        '<div class="iv-icon-group">' +
+          '<button type="button" class="iv-icon-btn iv-once" title="פעם אחת בתחילת האימון (לדוגמה היכון)">1×</button>' +
+          '<button type="button" class="iv-icon-btn iv-dup" title="שכפל"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+          '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+          '<button type="button" class="iv-icon-btn iv-gear" title="צליל לאינטרוול"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 16.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="iv-sound-panel" hidden><select class="soundSelect"></select></div>';
+
+    var nameInput = card.querySelector('.iv-name-input');
+    nameInput.value = iv.name;
+    function commitName(){ iv.name = nameInput.value.trim() || iv.name; nameInput.value = iv.name; }
+    nameInput.addEventListener('blur', commitName);
+    nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ nameInput.blur(); } });
+
+    var upBtn = card.querySelector('.iv-up'), downBtn = card.querySelector('.iv-down');
+    upBtn.disabled = idx === 0;
+    downBtn.disabled = idx === total-1;
+    upBtn.addEventListener('click', function(){ moveInterval(iv.id, -1); });
+    downBtn.addEventListener('click', function(){ moveInterval(iv.id, 1); });
+
+    var typeTimeBtn = card.querySelector('.iv-type-time'), typeRepsBtn = card.querySelector('.iv-type-reps');
+    function refreshTypeBtns(){
+      typeTimeBtn.classList.toggle('active', iv.type === 'time');
+      typeRepsBtn.classList.toggle('active', iv.type === 'reps');
+    }
+    refreshTypeBtns();
+    var stepperWrap = card.querySelector('.iv-stepper-wrap');
+    function renderIvStepper(){
+      stepperWrap.innerHTML = '<div class="iv-big-stepper"><button type="button" data-dir="-1">−</button><span class="iv-big-val"></span><button type="button" data-dir="1">+</button></div>';
+      var st = stepperWrap.querySelector('.iv-big-stepper');
+      if(iv.type === 'time'){
+        wireStepper(st, { get:function(){ return iv.durationSec; }, set:function(v){ iv.durationSec = v; }, min:0, max:1800, step:5, isTime:true });
+      } else {
+        wireStepper(st, { get:function(){ return iv.reps; }, set:function(v){ iv.reps = v; }, min:1, max:100, step:1, isTime:false });
+      }
+    }
+    typeTimeBtn.addEventListener('click', function(){ iv.type = 'time'; refreshTypeBtns(); renderIvStepper(); });
+    typeRepsBtn.addEventListener('click', function(){ iv.type = 'reps'; refreshTypeBtns(); renderIvStepper(); });
+    renderIvStepper();
+
+    var colorSwatch = card.querySelector('.iv-color-swatch');
+    colorSwatch.style.background = iv.color;
+    colorSwatch.addEventListener('click', function(){
+      openColorPopup(iv.id, function(hex){
+        iv.color = hex;
+        card.style.background = hex;
+        colorSwatch.style.background = hex;
+      }, iv.color);
+    });
+
+    var onceBtn = card.querySelector('.iv-once');
+    function refreshOnce(){ onceBtn.classList.toggle('once-on', !!iv.once); }
+    refreshOnce();
+    onceBtn.addEventListener('click', function(){ iv.once = !iv.once; refreshOnce(); });
+
+    card.querySelector('.iv-dup').addEventListener('click', function(){ duplicateInterval(iv.id); });
+    card.querySelector('.iv-del').addEventListener('click', function(){ deleteInterval(iv.id); });
+
+    var gearBtn = card.querySelector('.iv-gear');
+    var soundPanel = card.querySelector('.iv-sound-panel');
+    var soundSelect = soundPanel.querySelector('.soundSelect');
+    soundSelect.setAttribute('data-iv', iv.id);
+    fillSoundSelect(soundSelect, iv);
+    soundSelect.addEventListener('change', function(){
+      iv.soundAssignment = soundSelect.value === '' ? null : (soundSelect.value.indexOf('builtin:') === 0 ? soundSelect.value : Number(soundSelect.value));
+    });
+    gearBtn.addEventListener('click', function(){ soundPanel.hidden = !soundPanel.hidden; });
+
+    return card;
+  }
+
+  function renderEditorIntervals(){
+    if(!editingPreset) return;
+    ivListEl.innerHTML = '';
+    editingPreset.intervals.forEach(function(iv, idx){
+      ivListEl.appendChild(buildIvCard(iv, idx, editingPreset.intervals.length));
+    });
+  }
+
+  document.getElementById('addIvBtn').addEventListener('click', function(){
+    if(!editingPreset) return;
+    editingPreset.intervals.push(makeInterval({ name: 'אינטרוול ' + (editingPreset.intervals.length+1), color: nextIvColor() }));
+    renderEditorIntervals();
+  });
+
+  function openEditor(presetId){
+    if(presetId){
+      editingPreset = clonePreset(findPreset(presetId));
+      deleteEditorBtn.hidden = false;
+    } else {
+      editingPreset = makePreset({
+        name: 'פריסט חדש', sets: 1, setRestSec: 0,
+        intervals: [ makeInterval({ name:'עבודה', color:'#ff5c5c' }), makeInterval({ name:'מנוחה', color:'#35d0a0' }) ]
+      });
+      deleteEditorBtn.hidden = true;
+    }
+    editorNameField.value = editingPreset.name;
+    wireStepper(document.getElementById('editorSetsStepper'), {
+      get:function(){ return editingPreset.sets; }, set:function(v){ editingPreset.sets = v; }, min:1, max:99, step:1, isTime:false
+    });
+    wireStepper(document.getElementById('editorSetRestStepper'), {
+      get:function(){ return editingPreset.setRestSec; }, set:function(v){ editingPreset.setRestSec = v; }, min:0, max:600, step:5, isTime:true
+    });
+    renderEditorIntervals();
+    editorOverlay.hidden = false;
+  }
+  function closeEditor(){ editorOverlay.hidden = true; editingPreset = null; }
+  document.getElementById('closeEditorBtn').addEventListener('click', closeEditor);
+  editorOverlay.addEventListener('click', function(e){ if(e.target === editorOverlay) closeEditor(); });
+  document.getElementById('saveEditorBtn').addEventListener('click', function(){
+    if(!editingPreset) return;
+    editingPreset.name = editorNameField.value.trim() || editingPreset.name;
+    var existing = findPreset(editingPreset.id);
+    if(existing){
+      presets = presets.map(function(p){ return p.id === editingPreset.id ? editingPreset : p; });
+    } else {
+      presets.push(editingPreset);
+    }
+    savePresets();
+    if(currentPresetId === editingPreset.id) setCurrentPreset(editingPreset);
+    renderPresetsList();
+    closeEditor();
+  });
+  deleteEditorBtn.addEventListener('click', function(){
+    if(!editingPreset) return;
+    if(!confirm('למחוק את "' + editingPreset.name + '"?')) return;
+    presets = presets.filter(function(x){ return x.id !== editingPreset.id; });
+    if(!presets.length) presets = [defaultClassicPreset()];
+    savePresets();
+    if(currentPresetId === editingPreset.id) setCurrentPreset(presets[0]);
+    renderPresetsList();
+    closeEditor();
+  });
+
+  // ---------- home sheet (quickstart + presets) ----------
+  var settingsOverlay = document.getElementById('settingsOverlay');
+  var settingsBtn = document.getElementById('settingsBtn');
+  var closeSettingsBtn = document.getElementById('closeSettingsBtn');
   function openSettings(){
-    draft = Object.assign({}, settings);
-    renderSteppers();
     renderSoundSelects();
-    applyColorsToDOM();
+    renderPresetsList();
     settingsOverlay.hidden = false;
   }
   function closeSettings(){ settingsOverlay.hidden = true; }
   settingsBtn.addEventListener('click', openSettings);
   closeSettingsBtn.addEventListener('click', closeSettings);
   settingsOverlay.addEventListener('click', function(e){ if(e.target === settingsOverlay) closeSettings(); });
-  applySettingsBtn.addEventListener('click', function(){
-    settings = Object.assign({}, draft);
-    saveSettings();
-    closeSettings();
-    resetWorkout();
-  });
 
   // ---------- share ----------
   var shareBtn = document.getElementById('shareBtn');
