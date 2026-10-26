@@ -1985,7 +1985,6 @@
   // ---------- beep cues (synthesized, boosted for loudness) ----------
   var actx = null;
   var masterCompressor = null;
-  var duckDest = null, duckEl = null, duckElHandle = null;
   // Per-sound pitch (in cents, 0 = original). Applied as oscillator detune
   // only while a built-in sound plays, so the short phase beeps stay as-is.
   var pitchCents = 0;
@@ -2039,19 +2038,7 @@
         masterCompressor.attack.setValueAtTime(0.003, c.currentTime);
         masterCompressor.release.setValueAtTime(0.1, c.currentTime);
       }catch(e){}
-      // Experimental: route the cue sounds through a media element (played
-      // only while a cue sounds) so Android treats them as real media
-      // playback and lowers other apps' music instead of just mixing in.
-      var out = c.destination;
-      try{
-        if(c.createMediaStreamDestination){
-          duckDest = c.createMediaStreamDestination();
-          duckEl = new Audio();
-          duckEl.srcObject = duckDest.stream;
-          out = duckDest;
-        }
-      }catch(e){ duckDest = null; duckEl = null; out = c.destination; }
-      masterMakeup.connect(masterCompressor).connect(out);
+      masterMakeup.connect(masterCompressor).connect(c.destination);
     }
     return masterMakeup;
   }
@@ -2283,21 +2270,9 @@
   }
   function playBuiltinSound(snd){
     duckOtherApps(1800);
-    var cents = getPitch(snd.id);
-    function fire(){
-      pitchCents = cents;
-      try{ snd.play(); }catch(e){}
-      pitchCents = 0;
-    }
-    ctx(); comp(actx); // make sure the audio graph (and duck element) exist
-    if(duckEl){
-      try{ var pr = duckEl.play(); if(pr && pr.catch) pr.catch(function(){}); }catch(e){}
-      if(duckElHandle) clearTimeout(duckElHandle);
-      duckElHandle = setTimeout(function(){ duckElHandle = null; try{ duckEl.pause(); }catch(e){} }, 2600);
-      setTimeout(fire, 150); // let the media element start first so the cue isn't clipped
-    } else {
-      fire();
-    }
+    pitchCents = getPitch(snd.id);
+    try{ snd.play(); }catch(e){}
+    pitchCents = 0;
   }
 
   // ---------- transport ----------
