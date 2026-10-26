@@ -361,6 +361,12 @@
     justify-content: center;
     gap: 8px;
     width: 100%;
+    /* The page is RTL, so a plain flex row here would lay the minutes box
+       out on the right and the seconds box on the left — the DOM order
+       (minutes, colon, seconds) stays correct, but visually it reads
+       backwards. Forcing LTR keeps minutes-then-seconds left to right,
+       like any clock, regardless of the page's base direction. */
+    direction: ltr;
   }
   .time-edit-group .time-edit-part{
     font-family: 'Bebas Neue', 'Inter', sans-serif;
@@ -430,7 +436,7 @@
     text-transform: uppercase;
     color: rgba(255,255,255,.6);
   }
-  .iqs-rest-edit{ display: inline-flex; align-items: center; gap: 2px; font-family: 'Bebas Neue', 'Inter', sans-serif; font-size: 26px; color: #fff; }
+  .iqs-rest-edit{ display: inline-flex; align-items: center; gap: 2px; font-family: 'Bebas Neue', 'Inter', sans-serif; font-size: 26px; color: #fff; direction: ltr; }
   .iqs-input{
     font-family: 'Bebas Neue', 'Inter', sans-serif;
     font-size: 26px;
@@ -634,10 +640,16 @@
     background: var(--surface);
     color: var(--text);
   }
-  .stepper .time-input-group{
+  /* Not scoped to .stepper — also used by the interval editor's big
+     tap-to-type stepper. The page is RTL, so without a forced direction a
+     flex row of [minutes][:][seconds] lays out backwards (seconds on the
+     left, minutes on the right); LTR keeps it reading like a normal clock
+     regardless of where it's used. */
+  .time-input-group{
     display: inline-flex;
     align-items: center;
     gap: 3px;
+    direction: ltr;
   }
   .stepper .time-input-group input.stepper-input-part{
     width: 42px;
