@@ -500,6 +500,15 @@
     gap: 14px;
     width: 100%;
   }
+  .ready-overlay{
+    position: fixed; inset: 0; z-index: 100; background: #000; color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer; user-select: none; -webkit-user-select: none;
+  }
+  .ready-overlay[hidden]{ display: none; }
+  .ready-word{ font-family: 'Bebas Neue','Inter',sans-serif; font-size: min(64px, 14vw); letter-spacing: 8px; opacity: .85; }
+  .ready-num{ font-family: 'Bebas Neue','Inter',sans-serif; font-size: min(240px, 52vw); line-height: 1; font-variant-numeric: tabular-nums; }
+  .ready-hint{ margin-top: 24px; font-size: 13px; opacity: .45; }
   .volume-row{
     display: flex; align-items: center; gap: 10px;
     position: fixed; left: 18px; right: 18px; z-index: 6;
@@ -1475,6 +1484,12 @@
       <button type="button" class="add-iv-btn" id="addIvBtn">+ הוסף אינטרוול</button>
     </div>
 
+    <div class="ready-overlay" id="readyOverlay" hidden>
+      <div class="ready-word">READY</div>
+      <div class="ready-num" id="readyNum">5</div>
+      <div class="ready-hint">הקש לביטול</div>
+    </div>
+
     <div class="controls">
       <div class="controls-row">
         <button class="btn primary wide" id="startBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>התחל</span></button>
@@ -1579,12 +1594,12 @@
       durationSec: 30,
       reps: 10,
       color: nextIvColor(),
-      soundAssignment: null, // null | 'builtin:<id>' | <trackId number>
+      soundAssignment: 'builtin:marimba', // work sound: null (silent) | 'builtin:<id>' | <trackId number>
       once: false,
       // Each block is work + rest. rest 0 = no rest phase.
       restSec: 10,
       restColor: '#35d0a0',
-      restSound: null
+      restSound: 'builtin:ding'
     }, opts);
   }
   function makePreset(opts){
@@ -1708,6 +1723,16 @@
       out.push(w);
     }
     p.intervals = out.length ? out : defaultClassicPreset().intervals;
+  })(currentPreset);
+  // One-time: the generic beeps are gone, so a block that had no sound
+  // assigned gets the soft default work / rest sounds instead of silence.
+  (function migrateSoundsV2(p){
+    if(p.soundsV2) return;
+    p.intervals.forEach(function(iv){
+      if(iv.soundAssignment == null) iv.soundAssignment = 'builtin:marimba';
+      if(iv.restSound == null) iv.restSound = 'builtin:ding';
+    });
+    p.soundsV2 = true;
   })(currentPreset);
   function savePresets(){ try{ localStorage.setItem(WORKOUT_KEY, JSON.stringify(currentPreset)); }catch(e){} }
   savePresets();
@@ -2090,12 +2115,10 @@
     osc.start(t0);
     osc.stop(t0 + 0.55);
   }
+  // No generic system beeps any more: each phase plays only the sound
+  // assigned to it (work sound / rest sound — see applyPhaseMusicForStep).
   function cuePhaseStart(phase){
     duckMusic(phase === 'done' ? 900 : 500);
-    if(phase === 'work') { beep(1200, 260, 1); }
-    else if(phase === 'rest') { beep(700, 300, 0.95); }
-    else if(phase === 'setrest') { beep(520, 320, 0.95); }
-    else if(phase === 'done') { beep(700,150,0.95); setTimeout(function(){beep(850,150,0.95);},160); setTimeout(function(){beep(1050,300,1);},320); }
   }
   function vibrate(pattern){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
 
@@ -2487,16 +2510,44 @@
     setRingFraction(Math.min(1, Math.max(0, frac)));
     timeDisplay.textContent = fmtTime(remainingSec);
     var wholeSec = Math.ceil(remainingSec);
-    if(wholeSec <= 3 && wholeSec >= 1 && wholeSec !== lastBeepSecond){
-      lastBeepSecond = wholeSec;
-      cueTick();
-    }
   }
   function startTick(){ stopTick(); tickHandle = setInterval(tick, 100); }
   function stopTick(){ if(tickHandle){ clearInterval(tickHandle); tickHandle = null; } }
 
+  // Pressing start from idle first shows a black READY screen that counts
+  // 5..1, then the workout starts with the first work sound.
+  var readyOverlay = document.getElementById('readyOverlay');
+  var readyNum = document.getElementById('readyNum');
+  var readyTimer = null;
+  function cancelReady(){
+    if(readyTimer){ clearInterval(readyTimer); readyTimer = null; }
+    readyOverlay.hidden = true;
+    releaseWakeLock();
+  }
+  readyOverlay.addEventListener('click', cancelReady);
+  function beginReady(){
+    if(readyTimer) return;
+    requestWakeLock();
+    var n = 5;
+    readyNum.textContent = String(n);
+    readyOverlay.hidden = false;
+    readyTimer = setInterval(function(){
+      n--;
+      if(n <= 0){
+        clearInterval(readyTimer); readyTimer = null;
+        readyOverlay.hidden = true;
+        startOrResumeCore();
+      } else {
+        readyNum.textContent = String(n);
+      }
+    }, 1000);
+  }
   function startOrResume(){
     if(ctx() && ctx().state === 'suspended'){ ctx().resume(); }
+    if(!running && !inProgress){ beginReady(); return; }
+    startOrResumeCore();
+  }
+  function startOrResumeCore(){
     if(!running){
       running = true;
       requestWakeLock();
@@ -2506,8 +2557,7 @@
         inProgress = true;
         plan = buildPlan(currentPreset);
         stepIndex = 0;
-        cueStartWhistle();
-        goToStep(0, true, true); // skipCue: the whistle above replaces the first interval's normal cue
+        goToStep(0, true, true); // plays the work sound for the first interval
       } else if(phaseRemainingMs !== null){
         phaseEndAt = Date.now() + phaseRemainingMs;
         phaseRemainingMs = null;
@@ -2808,7 +2858,7 @@
       });
       list.appendChild(row);
     }
-    addRow(null, 'ללא צליל נוסף (רק ביפים קצרים)');
+    addRow(null, 'ללא צליל');
     BUILTIN_SOUNDS.forEach(function(sn, i){ addRow('builtin:' + sn.id, sn.name, (i === 0 || BUILTIN_SOUNDS[i-1].group !== sn.group) ? ('צלילים ' + sn.group) : null, sn); });
     tracks.forEach(function(t, i){ addRow(t.id, t.name, i === 0 ? 'השירים שהעלית' : null); });
   }
