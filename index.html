@@ -1960,18 +1960,19 @@
   var masterMakeup = null;
   function comp(c){
     if(!masterCompressor){
-      // Chain: sources -> big pre-gain -> hard limiter -> destination.
-      // The pre-gain pushes every cue far louder than the music; the
-      // limiter then flattens the peaks so it stays loud without
-      // distorting.
+      // Chain: sources -> small gain -> gentle safety limiter -> destination.
+      // The old chain (3.2x gain into a hard limiter) distorted every sound
+      // by ~50% — that was the harsh, annoying edge on all of them. A clean
+      // signal near full scale is already as loud as the phone can play;
+      // more "loudness" only came from squashing the waveform.
       masterMakeup = c.createGain();
-      masterMakeup.gain.setValueAtTime(3.2, c.currentTime);
+      masterMakeup.gain.setValueAtTime(1.2, c.currentTime);
       masterCompressor = c.createDynamicsCompressor();
       try{
-        masterCompressor.threshold.setValueAtTime(-12, c.currentTime);
+        masterCompressor.threshold.setValueAtTime(-1, c.currentTime);
         masterCompressor.knee.setValueAtTime(0, c.currentTime);
-        masterCompressor.ratio.setValueAtTime(20, c.currentTime);
-        masterCompressor.attack.setValueAtTime(0.001, c.currentTime);
+        masterCompressor.ratio.setValueAtTime(10, c.currentTime);
+        masterCompressor.attack.setValueAtTime(0.003, c.currentTime);
         masterCompressor.release.setValueAtTime(0.1, c.currentTime);
       }catch(e){}
       masterMakeup.connect(masterCompressor).connect(c.destination);
