@@ -1259,33 +1259,24 @@
     font-family: inherit;
     padding: 2px 0;
   }
-  .iv-move-btns{ display: flex; gap: 2px; flex-shrink: 0; }
-  .iv-move-btns button{
-    width: 30px; height: 30px;
-    border-radius: 8px;
+  /* Drag handle: hold and drag up/down to reorder the cards — replaces
+     the old up/down arrow buttons. touch-action:none stops the page from
+     scrolling while a finger is dragging it. */
+  .iv-drag-handle{
+    width: 34px; height: 34px;
+    border-radius: 9px;
     border: none;
     background: rgba(255,255,255,.18);
     color: #fff;
-    cursor: pointer;
+    cursor: grab;
     display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    touch-action: none;
   }
-  .iv-move-btns button:disabled{ opacity: .35; cursor: default; }
-  .iv-type-toggle{
-    display: inline-flex;
-    gap: 2px;
-    background: rgba(0,0,0,.2);
-    border-radius: 999px;
-    padding: 3px;
-    align-self: flex-start;
+  .iv-card.dragging{
+    box-shadow: 0 18px 30px rgba(0,0,0,.45);
+    opacity: .92;
   }
-  .iv-type-toggle button{
-    background: none; border: none; cursor: pointer;
-    font-size: 12px; font-weight: 800; letter-spacing: .5px;
-    color: rgba(255,255,255,.65);
-    padding: 6px 14px;
-    border-radius: 999px;
-  }
-  .iv-type-toggle button.active{ color: #111; background: #fff; }
   .iv-big-stepper{
     display: flex; align-items: center; justify-content: center; gap: 18px;
     padding: 8px 0 2px;
@@ -1340,7 +1331,6 @@
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
-  .iv-icon-btn.once-on{ background: #fff; color: #000; }
   .iv-sound-panel{
     background: rgba(0,0,0,.22);
     border-radius: 12px;
@@ -3197,23 +3187,6 @@
     for(var i=0; i<currentPreset.intervals.length; i++){ if(currentPreset.intervals[i].id === id) return i; }
     return -1;
   }
-  function moveInterval(id, dir){
-    var i = ivIndexOf(id), j = i + dir;
-    if(i < 0 || j < 0 || j >= currentPreset.intervals.length) return;
-    var arr = currentPreset.intervals;
-    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
-    savePresets();
-    renderEditorIntervals();
-  }
-  function duplicateInterval(id){
-    var i = ivIndexOf(id);
-    if(i < 0) return;
-    var copy = Object.assign({}, currentPreset.intervals[i]);
-    copy.id = uid('iv');
-    currentPreset.intervals.splice(i+1, 0, copy);
-    savePresets();
-    renderEditorIntervals();
-  }
   function deleteInterval(id){
     if(currentPreset.intervals.length <= 1){ alert('צריך לפחות אינטרוול אחד באימון'); return; }
     currentPreset.intervals = currentPreset.intervals.filter(function(x){ return x.id !== id; });
@@ -3227,16 +3200,9 @@
     card.style.background = iv.color;
     card.innerHTML =
       '<div class="iv-card-top">' +
+        '<button type="button" class="iv-drag-handle" aria-label="גרור לשינוי הסדר" title="גרור לשינוי הסדר"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>' +
         '<span class="iv-name-label"></span>' +
         '<input type="text" class="iv-name-input" maxlength="20" hidden>' +
-        '<div class="iv-move-btns">' +
-          '<button type="button" class="iv-up" aria-label="הזז למעלה">▲</button>' +
-          '<button type="button" class="iv-down" aria-label="הזז למטה">▼</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="iv-type-toggle">' +
-        '<button type="button" class="iv-type-time">זמן</button>' +
-        '<button type="button" class="iv-type-reps">חזרות</button>' +
       '</div>' +
       '<div class="iv-stepper-wrap"></div>' +
       '<div class="iv-bottom-row">' +
@@ -3245,8 +3211,6 @@
           '<span class="iv-color-label">צבע</span>' +
         '</div>' +
         '<div class="iv-icon-group">' +
-          '<button type="button" class="iv-icon-btn iv-once" title="פעם אחת בתחילת האימון (לדוגמה היכון)">1×</button>' +
-          '<button type="button" class="iv-icon-btn iv-dup" title="שכפל"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
           '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
           '<button type="button" class="iv-icon-btn iv-gear" title="צליל לאינטרוול"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 16.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>' +
         '</div>' +
@@ -3286,31 +3250,12 @@
     nameInput.addEventListener('blur', function(){ closeRename(true); });
     wireLongPress(nameLabel, function(){ return true; }, openRename);
 
-    var upBtn = card.querySelector('.iv-up'), downBtn = card.querySelector('.iv-down');
-    upBtn.disabled = idx === 0;
-    downBtn.disabled = idx === total-1;
-    upBtn.addEventListener('click', function(){ moveInterval(iv.id, -1); });
-    downBtn.addEventListener('click', function(){ moveInterval(iv.id, 1); });
-
-    var typeTimeBtn = card.querySelector('.iv-type-time'), typeRepsBtn = card.querySelector('.iv-type-reps');
-    function refreshTypeBtns(){
-      typeTimeBtn.classList.toggle('active', iv.type === 'time');
-      typeRepsBtn.classList.toggle('active', iv.type === 'reps');
-    }
-    refreshTypeBtns();
+    // Every interval is simply time-based now — no reps mode to pick.
     var stepperWrap = card.querySelector('.iv-stepper-wrap');
-    function renderIvStepper(){
-      stepperWrap.innerHTML = '<div class="iv-big-stepper"><button type="button" data-dir="-1">−</button><span class="iv-big-val"></span><button type="button" data-dir="1">+</button></div>';
-      var st = stepperWrap.querySelector('.iv-big-stepper');
-      if(iv.type === 'time'){
-        wireStepper(st, { get:function(){ return iv.durationSec; }, set:function(v){ iv.durationSec = v; savePresets(); }, min:0, max:1800, step:5, isTime:true });
-      } else {
-        wireStepper(st, { get:function(){ return iv.reps; }, set:function(v){ iv.reps = v; savePresets(); }, min:1, max:100, step:1, isTime:false });
-      }
-    }
-    typeTimeBtn.addEventListener('click', function(){ iv.type = 'time'; refreshTypeBtns(); renderIvStepper(); savePresets(); });
-    typeRepsBtn.addEventListener('click', function(){ iv.type = 'reps'; refreshTypeBtns(); renderIvStepper(); savePresets(); });
-    renderIvStepper();
+    stepperWrap.innerHTML = '<div class="iv-big-stepper"><button type="button" data-dir="-1">−</button><span class="iv-big-val"></span><button type="button" data-dir="1">+</button></div>';
+    wireStepper(stepperWrap.querySelector('.iv-big-stepper'), {
+      get:function(){ return iv.durationSec; }, set:function(v){ iv.durationSec = v; savePresets(); }, min:0, max:1800, step:5, isTime:true
+    });
 
     var colorSwatch = card.querySelector('.iv-color-swatch');
     colorSwatch.style.background = iv.color;
@@ -3323,13 +3268,53 @@
       }, iv.color);
     });
 
-    var onceBtn = card.querySelector('.iv-once');
-    function refreshOnce(){ onceBtn.classList.toggle('once-on', !!iv.once); }
-    refreshOnce();
-    onceBtn.addEventListener('click', function(){ iv.once = !iv.once; refreshOnce(); savePresets(); });
-
-    card.querySelector('.iv-dup').addEventListener('click', function(){ duplicateInterval(iv.id); });
     card.querySelector('.iv-del').addEventListener('click', function(){ deleteInterval(iv.id); });
+
+    // Drag-to-reorder: hold the handle and drag the card up/down past its
+    // neighbors; dropping it reorders the underlying list and persists.
+    var dragHandle = card.querySelector('.iv-drag-handle');
+    var dragging = false, dragStartY = 0, dragPointerId = null;
+    function onDragMove(e){
+      if(!dragging) return;
+      card.style.transform = 'translateY(' + (e.clientY - dragStartY) + 'px)';
+    }
+    function onDragEnd(e){
+      if(!dragging) return;
+      dragging = false;
+      try{ dragHandle.releasePointerCapture(dragPointerId); }catch(err){}
+      var finalRect = card.getBoundingClientRect();
+      var myMid = finalRect.top + finalRect.height/2;
+      card.classList.remove('dragging');
+      card.style.transition = 'transform .15s ease';
+      card.style.transform = '';
+      setTimeout(function(){ card.style.transition = ''; card.style.position = ''; card.style.zIndex = ''; }, 160);
+
+      var others = Array.prototype.slice.call(ivListEl.children).filter(function(c){ return c !== card; });
+      var insertionIndex = 0;
+      others.forEach(function(c){
+        var r = c.getBoundingClientRect();
+        if(r.top + r.height/2 < myMid) insertionIndex++;
+      });
+      var curIdx = ivIndexOf(iv.id);
+      if(curIdx !== -1 && curIdx !== insertionIndex){
+        currentPreset.intervals.splice(curIdx, 1);
+        currentPreset.intervals.splice(insertionIndex, 0, iv);
+        savePresets();
+      }
+      renderEditorIntervals();
+    }
+    dragHandle.addEventListener('pointerdown', function(e){
+      dragging = true;
+      dragStartY = e.clientY;
+      dragPointerId = e.pointerId;
+      try{ dragHandle.setPointerCapture(e.pointerId); }catch(err){}
+      card.style.position = 'relative';
+      card.style.zIndex = '20';
+      card.classList.add('dragging');
+    });
+    dragHandle.addEventListener('pointermove', onDragMove);
+    dragHandle.addEventListener('pointerup', onDragEnd);
+    dragHandle.addEventListener('pointercancel', onDragEnd);
 
     var gearBtn = card.querySelector('.iv-gear');
     var soundPanel = card.querySelector('.iv-sound-panel');
