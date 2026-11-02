@@ -3886,7 +3886,13 @@
 
   // The outlined "+" circle under the list adds another cycle.
   document.getElementById('addIvBtn').addEventListener('click', function(){
-    currentPreset.intervals.push(makeInterval({ name: 'טיימר ' + (currentPreset.intervals.length+1), durationSec: 30, restSec: 0, color: nextIvColor() }));
+    var ivs = currentPreset.intervals, n = ivs.length;
+    // Work / rest alternate, so a new timer repeats the one two back
+    // (same color, time and sound); with only one timer it gets the next color.
+    var tpl = n >= 2 ? ivs[n-2] : null;
+    ivs.push(makeInterval(tpl
+      ? { name: 'טיימר ' + (n+1), durationSec: tpl.durationSec, restSec: 0, color: tpl.color, soundAssignment: tpl.soundAssignment }
+      : { name: 'טיימר ' + (n+1), durationSec: 30, restSec: 0, color: nextIvColor() }));
     savePresets();
     renderEditorIntervals();
     var cards = ivListEl.querySelectorAll('.cyc');
