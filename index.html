@@ -2673,6 +2673,19 @@
   };
   var sampleBuffers = {};
   function playSample(key){
+    // An <audio> element makes Android/Chrome take audio focus, so music pauses or ducks while the sound plays.
+    var detune = pitchCents || 0;
+    try{
+      var a = new Audio(SAMPLE_B64[key]);
+      a.volume = Math.max(0, Math.min(1, userVol));
+      if(detune){ a.preservesPitch = false; a.playbackRate = Math.pow(2, detune / 1200); }
+      var p = a.play();
+      if(p && p.catch){ p.catch(function(){ playSampleWA(key); }); }
+      return;
+    }catch(e){}
+    playSampleWA(key);
+  }
+  function playSampleWA(key){
     var c = ctx(); if(!c) return;
     var detune = pitchCents || 0;
     function go(buf){
