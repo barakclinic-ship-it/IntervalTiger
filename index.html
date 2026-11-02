@@ -1869,7 +1869,7 @@
   // consecutive pair into one block that carries both work and rest.
   (function normalizeBlocks(p){
     var src = p.intervals || [];
-    if(src.length && src.every(function(iv){ return iv.restSec !== undefined; })) return;
+    if(!src.length || src.every(function(iv){ return iv.restSec !== undefined; })) return;
     var loop = src.filter(function(iv){ return !iv.once; });
     if(!loop.length) loop = src.slice();
     var out = [];
@@ -2741,6 +2741,7 @@
     }, 1000);
   }
   function startOrResume(){
+    if(!running && !inProgress && !currentPreset.intervals.length) return;
     if(ctx() && ctx().state === 'suspended'){ ctx().resume(); }
     startOrResumeCore();
   }
@@ -3648,7 +3649,6 @@
     return -1;
   }
   function deleteInterval(id){
-    if(currentPreset.intervals.length <= 1){ alert('צריך לפחות אינטרוול אחד באימון'); return; }
     currentPreset.intervals = currentPreset.intervals.filter(function(x){ return x.id !== id; });
     savePresets();
     renderEditorIntervals();
@@ -3724,7 +3724,6 @@
   }).observe(roundsDisplay, { childList:true, characterData:true, subtree:true });
 
   function deleteInterval(id){
-    if(currentPreset.intervals.length <= 1){ alert('צריך לפחות מחזור אחד באימון'); return; }
     currentPreset.intervals = currentPreset.intervals.filter(function(x){ return x.id !== id; });
     savePresets();
     renderEditorIntervals();
