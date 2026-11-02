@@ -1636,6 +1636,22 @@
     .cyc-title{ font-size: 20px; }
     .cycles-scroll.agenda .cyc{ height: 84px; }
   }
+
+  /* v54: bigger title and bigger running number */
+  .cyc .digits{ font-size: min(35vw, 210px); letter-spacing: -.03em; gap: 0; }
+  .half .dg{ padding: 0; }
+  .cyc-title{ font-size: 46px; letter-spacing: 4px; }
+  .title-input{ font-size: 36px; }
+  .cycles-scroll.agenda .cyc .digits{ font-size: 72px; }
+  .cycles-scroll.agenda .cyc-title{ font-size: 21px; }
+  .cycles-scroll.agenda .cyc{ height: 124px; }
+  @media (orientation: landscape) and (max-height: 620px){
+    .cyc .digits{ font-size: min(17vw, 34vh, 150px); }
+    .cyc-title{ font-size: 30px; }
+    .cycles-scroll.agenda .cyc .digits{ font-size: 48px; }
+    .cycles-scroll.agenda .cyc-title{ font-size: 17px; }
+    .cycles-scroll.agenda .cyc{ height: 96px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
