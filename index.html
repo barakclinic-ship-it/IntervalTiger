@@ -2411,10 +2411,10 @@
     var m = comp(c);
     if(!synthBus){
       synthBus = c.createGain();
-      synthBus.gain.value = 2.5;
+      synthBus.gain.value = 1.8;
       var ws = c.createWaveShaper();
       var n = 2048, curve = new Float32Array(n);
-      for(var i = 0; i < n; i++){ var x = i * 2 / (n - 1) - 1; curve[i] = Math.tanh(3 * x); }
+      for(var i = 0; i < n; i++){ var x = i * 2 / (n - 1) - 1; curve[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); }
       ws.curve = curve;
       try{ ws.oversample = '4x'; }catch(e){}
       synthBus.connect(ws);
@@ -2614,6 +2614,24 @@
 
   // Each built-in sound also carries a color: while its phase is active,
   // that color takes over the screen (see applyFloodForPhase below).
+  // Clean, loud beep: a flat-topped (sustained) tone with a touch of upper harmonics.
+  // Full-level sustain carries far more energy than a quickly decaying blip, and
+  // there is no hard clipping, so it is loud without the harsh edge.
+  function cleanBeep(){
+    var c = ctx(); if(!c) return;
+    var t0 = c.currentTime, dest = synthDest(c), dur = 0.22;
+    [[988, 0.9], [1976, 0.22], [2964, 0.1]].forEach(function(pt){
+      var osc = c.createOscillator(), g = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pt[0], t0);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(pt[1], t0 + 0.006);
+      g.gain.setValueAtTime(pt[1], t0 + dur - 0.03);
+      g.gain.linearRampToValueAtTime(0, t0 + dur);
+      osc.connect(g).connect(dest);
+      osc.start(t0); osc.stop(t0 + dur + 0.02);
+    });
+  }
   // Gong: a struck-metal tone - inharmonic partials with long, staggered decays.
   function gongTone(){
     var c = ctx(); if(!c) return;
@@ -2642,9 +2660,9 @@
     };
   }
   var BUILTIN_SOUNDS = [
-    { id:'beep',  name:'Beep',    group:'ביפ',  color:'#34d399', play: repeatStrike(classicBeepTone, 1, 260) },
-    { id:'beep2', name:'Beep x2', group:'ביפ',  color:'#34d399', play: repeatStrike(classicBeepTone, 2, 260) },
-    { id:'beep3', name:'Beep x3', group:'ביפ',  color:'#34d399', play: repeatStrike(classicBeepTone, 3, 260) },
+    { id:'beep',  name:'Beep',    group:'ביפ',  color:'#34d399', play: repeatStrike(cleanBeep, 1, 330) },
+    { id:'beep2', name:'Beep x2', group:'ביפ',  color:'#34d399', play: repeatStrike(cleanBeep, 2, 330) },
+    { id:'beep3', name:'Beep x3', group:'ביפ',  color:'#34d399', play: repeatStrike(cleanBeep, 3, 330) },
     { id:'gong',  name:'Gong',    group:'גונג', color:'#fb923c', play: repeatStrike(gongTone, 1, 1100) },
     { id:'gong2', name:'Gong x2', group:'גונג', color:'#fb923c', play: repeatStrike(gongTone, 2, 1100) },
     { id:'gong3', name:'Gong x3', group:'גונג', color:'#fb923c', play: repeatStrike(gongTone, 3, 1100) }
