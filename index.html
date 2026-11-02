@@ -1696,6 +1696,18 @@
     .stage .controls .controls-row.secondary .btn{ min-height: 44px; }
     .stage .controls .btn{ border-radius: 16px; }
   }
+
+  /* v57: landscape - no black strip; sets bar floats over the colored page */
+  @media (orientation: landscape) and (max-height: 620px){
+    .stage{ padding-top: 0; }
+    .setsbar{ position: absolute; top: 0; left: 0; right: 0; width: auto; max-width: none; z-index: 9; background: transparent; padding-top: 4px; }
+    .stage .cycles-scroll{ top: 0; }
+    .cyc .half{ padding-top: 58px; }
+    .cycles-scroll.agenda{ padding-top: 66px; }
+    .add-page{ padding-top: 58px; }
+    .h-tools{ top: 62px; }
+    .cyc .digits{ font-size: min(19vw, 30vh, 170px); }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
