@@ -1622,6 +1622,20 @@
     .sb-status{ font-size: 24px; }
     header{ position: absolute; top: 0; right: 0; left: 0; z-index: 12; }
   }
+
+  /* v51: a title on every timer */
+  .mid{ display:flex; flex-direction:column; align-items:center; gap:2px; max-width:100%; }
+  .cyc-title{ font-family:'Bebas Neue','Inter',sans-serif; font-size: 30px; letter-spacing: 3px; color:#fff; opacity:.92; cursor:pointer; padding: 2px 12px; border-radius: 10px; text-shadow: 0 2px 8px rgba(0,0,0,.3); max-width: 90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .title-input{ font: inherit; font-size: 26px; text-align:center; color:#fff; background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.8); border-radius: 10px; padding: 2px 8px; width: min(70vw, 300px); }
+  .stage.locked .cyc-title{ pointer-events:none; }
+  .cycles-scroll.agenda .cyc{ height: 112px; }
+  .cycles-scroll.agenda .mid{ align-items:flex-start; gap:0; padding-inline-start: 18px; }
+  .cycles-scroll.agenda .cyc-title{ font-size: 15px; letter-spacing: 2px; padding: 0 4px; opacity:.85; }
+  .cycles-scroll.agenda .cyc .digits{ padding-inline-start: 0; }
+  @media (orientation: landscape) and (max-height: 620px){
+    .cyc-title{ font-size: 20px; }
+    .cycles-scroll.agenda .cyc{ height: 84px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -1794,7 +1808,7 @@
   function makeInterval(opts){
     return Object.assign({
       id: uid('iv'),
-      name: 'אינטרוול',
+      name: 'TIGER',
       type: 'time',          // 'time' | 'reps'
       durationSec: 30,
       reps: 10,
@@ -1946,12 +1960,14 @@
     p.intervals.forEach(function(iv){
       out.push(iv);
       if((iv.restSec||0) > 0){
-        out.push(makeInterval({ name:'טיימר', durationSec: iv.restSec, color: iv.restColor || '#35d0a0',
+        out.push(makeInterval({ name:'TIGER', durationSec: iv.restSec, color: iv.restColor || '#35d0a0',
           soundAssignment: iv.restSound == null ? null : iv.restSound, restSec: 0 }));
       }
       iv.restSec = 0;
     });
     p.intervals = out;
+    // old generic names become the default title
+    out.forEach(function(iv){ if(!iv.name || /^(אינטרוול|טיימר|עבודה|מנוחה)( \d+)?$/.test(iv.name)) iv.name = 'TIGER'; });
   })(currentPreset);
   function savePresets(){ try{ localStorage.setItem(WORKOUT_KEY, JSON.stringify(currentPreset)); }catch(e){} }
   savePresets();
@@ -3785,7 +3801,7 @@
     el.style.background = iv.color;
     el.innerHTML =
       '<button type="button" class="h-btn h-drag" aria-label="גרור" title="גרור לשינוי הסדר"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg></button>' +
-      '<div class="digits" dir="ltr"><button type="button" class="dg mm"></button><span class="colon">:</span><button type="button" class="dg ss"></button></div>' +
+      '<div class="mid"><div class="cyc-title" role="button" tabindex="0"></div><div class="digits" dir="ltr"><button type="button" class="dg mm"></button><span class="colon">:</span><button type="button" class="dg ss"></button></div></div>' +
       '<div class="h-tools">' +
         '<button type="button" class="h-btn h-sound" aria-label="צליל" title="צליל"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>' +
         '<button type="button" class="h-btn h-color" aria-label="צבע" title="צבע"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2-.6-1.2.2-2.5 1.6-2.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/></svg></button>' +
@@ -3794,6 +3810,30 @@
     var h = { el: el, mm: el.querySelector('.mm'), ss: el.querySelector('.ss'), prog: el.querySelector('.prog') };
     card._halves.work = h;
     setDigits(h, iv.durationSec);
+    // Each timer has a title (default "TIGER") — tap it to rename.
+    var tEl = el.querySelector('.cyc-title');
+    tEl.textContent = iv.name || 'TIGER';
+    function editTitle(){
+      if(stageEl.classList.contains('locked')) return;
+      var input = document.createElement('input');
+      input.type = 'text'; input.maxLength = 24; input.className = 'title-input';
+      input.value = iv.name || 'TIGER';
+      tEl.replaceWith(input);
+      input.focus(); input.select();
+      var done = false;
+      function commit(ok){
+        if(done) return; done = true;
+        if(ok){ iv.name = input.value.trim() || 'TIGER'; savePresets(); }
+        tEl.textContent = iv.name || 'TIGER';
+        input.replaceWith(tEl);
+      }
+      input.addEventListener('blur', function(){ commit(true); });
+      input.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+        else if(e.key === 'Escape'){ commit(false); }
+      });
+    }
+    tEl.addEventListener('click', editTitle);
 
     function edit(btn, isMin){
       if(stageEl.classList.contains('locked')) return;
@@ -3834,7 +3874,7 @@
     // In the agenda (zoomed-out) view, tapping a row zooms back to it.
     card.addEventListener('click', function(e){
       if(!ivListEl.classList.contains('agenda') || card._swiped) return;
-      if(e.target.closest('.h-drag, .h-tools, .dg, .dg-input')) return;
+      if(e.target.closest('.h-drag, .h-tools, .dg, .dg-input, .cyc-title, .title-input')) return;
       setAgenda(false, card);
     });
 
@@ -3843,7 +3883,7 @@
       var sx = 0, sy = 0, dx = 0, active = false, swiping = false, pid = null;
       card.addEventListener('pointerdown', function(e){
         if(!ivListEl.classList.contains('agenda') || stageEl.classList.contains('locked')) return;
-        if(e.target.closest('.h-drag, .h-del, .dg-input')) return;
+        if(e.target.closest('.h-drag, .h-del, .dg-input, .title-input')) return;
         sx = e.clientX; sy = e.clientY; dx = 0; active = true; swiping = false; pid = e.pointerId;
       });
       card.addEventListener('pointermove', function(e){
@@ -3988,8 +4028,8 @@
     // (same color, time and sound); with only one timer it gets the next color.
     var tpl = n >= 2 ? ivs[n-2] : null;
     ivs.push(makeInterval(tpl
-      ? { name: 'טיימר ' + (n+1), durationSec: tpl.durationSec, restSec: 0, color: tpl.color, soundAssignment: tpl.soundAssignment }
-      : { name: 'טיימר ' + (n+1), durationSec: 30, restSec: 0, color: nextIvColor() }));
+      ? { name: tpl.name || 'TIGER', durationSec: tpl.durationSec, restSec: 0, color: tpl.color, soundAssignment: tpl.soundAssignment }
+      : { name: 'TIGER', durationSec: 30, restSec: 0, color: nextIvColor() }));
     savePresets();
     renderEditorIntervals();
     var cards = ivListEl.querySelectorAll('.cyc');
