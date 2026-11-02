@@ -1732,6 +1732,23 @@
   .stage .controls .btn:disabled{ opacity: .35; }
   .stage .controls .btn:active:not(:disabled){ background: transparent !important; }
   .stage .controls .btn:active:not(:disabled) svg{ opacity: 1; transform: scale(.92); }
+
+  /* v59: all control buttons in ONE row, as large as fits with gaps */
+  .stage .controls{ display: flex !important; flex-direction: row; flex-wrap: wrap; direction: rtl; justify-content: center; align-items: center; gap: 8px; }
+  .stage .controls .controls-row{ display: contents; }
+  .stage .controls .btn{ flex: 1 1 0; min-width: 0; width: auto !important; max-width: none; min-height: 88px !important; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .stage .controls #restartRoundBtn{ order: 1; }
+  .stage .controls #resetBtn{ order: 2; }
+  .stage .controls #startBtn{ order: 3; }
+  .stage .controls #skipBtn{ order: 4; }
+  .stage .controls .volume-row{ order: 5; flex: 0 0 100%; }
+  .stage .controls .btn svg{ width: 44px; height: 44px; }
+  .stage .controls #startBtn svg{ width: 54px; height: 54px; }
+  @media (orientation: landscape) and (max-height: 620px){
+    .stage .controls .btn{ min-height: 48px !important; }
+    .stage .controls .btn svg{ width: 30px; height: 30px; }
+    .stage .controls #startBtn svg{ width: 36px; height: 36px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -2330,7 +2347,7 @@
   var VOL_KEY = 'tiger_volume_v1';
   var userVol = 1;
   try{ var sv = parseFloat(localStorage.getItem(VOL_KEY)); if(sv >= 0 && sv <= 1) userVol = sv; }catch(e){}
-  function volGain(){ return 1.9 * userVol * userVol; }
+  function volGain(){ return 3.8 * userVol * userVol; }
   var PITCH_KEY = 'tiger_pitch_v1';
   var soundPitch = {};
   try{ soundPitch = JSON.parse(localStorage.getItem(PITCH_KEY) || '{}') || {}; }catch(e){ soundPitch = {}; }
@@ -2369,9 +2386,9 @@
       masterMakeup.gain.setValueAtTime(volGain(), c.currentTime);
       masterCompressor = c.createDynamicsCompressor();
       try{
-        masterCompressor.threshold.setValueAtTime(-1, c.currentTime);
+        masterCompressor.threshold.setValueAtTime(-3, c.currentTime);
         masterCompressor.knee.setValueAtTime(0, c.currentTime);
-        masterCompressor.ratio.setValueAtTime(10, c.currentTime);
+        masterCompressor.ratio.setValueAtTime(20, c.currentTime);
         masterCompressor.attack.setValueAtTime(0.003, c.currentTime);
         masterCompressor.release.setValueAtTime(0.1, c.currentTime);
       }catch(e){}
