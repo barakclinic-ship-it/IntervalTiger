@@ -259,6 +259,17 @@
   }
   /* Idle: the whole workout built on one screen, stacked, scrollable —
      replaces the old separate settings/editor screen entirely. */
+  .quick-icons{ display: flex; gap: 14px; margin-top: 16px; }
+  .quick-icons[hidden]{ display: none; }
+  .quick-icon{
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: .8;
+  }
+  .quick-icon:active{ opacity: 1; transform: scale(.94); }
+  .settings-scroll .idle-builder{ margin-top: 0; max-width: none; overflow: visible; }
   .idle-builder{
     align-self: stretch;
     width: 100%;
@@ -1423,6 +1434,141 @@
   .add-iv-btn:hover{ background: var(--surface-2); color: var(--text); }
 
   [hidden]{ display: none !important; }
+  /* ===== v41: one screen — cycles built and run in the same place ===== */
+  .legacy{ display:none !important; }
+  .stage{
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: calc(64px + env(safe-area-inset-top, 0px)) 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    background: #000;
+  }
+  .stage.flooded::before{ opacity: 0; }
+  .setsbar{
+    width: 100%; max-width: 520px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 6px 4px 2px; flex-shrink: 0; position: relative;
+  }
+  .sb-item{ display: flex; align-items: center; gap: 8px; }
+  .sb-lbl{ font-size: 13px; color: rgba(255,255,255,.6); }
+  .sb-stepper{ gap: 6px; }
+  .sb-stepper button{ width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.12); color:#fff; font-size: 18px; }
+  .sb-stepper span{ min-width: 38px; text-align:center; font-family:'Bebas Neue','Inter',sans-serif; font-size: 24px; color:#fff; font-variant-numeric: tabular-nums; cursor: pointer; }
+  .setsbar.running .sb-item{ display: none; }
+  .sb-status{
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 12px;
+    font-family:'Bebas Neue','Inter',sans-serif; font-size: 28px; color:#fff; letter-spacing: .5px;
+  }
+  .sb-status[hidden]{ display: none; }
+  .cycles-scroll{
+    width: 100%; max-width: 520px; flex: 1; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 4px 0 10px; -webkit-overflow-scrolling: touch;
+  }
+  .iv-list{ display: flex; flex-direction: column; gap: 14px; }
+  .cyc{ border-radius: 22px; overflow: hidden; flex-shrink: 0; transition: opacity .35s, transform .15s; position: relative; }
+  .cyc.dragging{ z-index: 20; box-shadow: 0 12px 30px rgba(0,0,0,.7); transition: none; opacity: .95; }
+  .iv-list.has-active .cyc .half:not(.active){ opacity: .28; }
+  .half{
+    position: relative; min-height: 104px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 12px; transition: opacity .35s;
+  }
+  .half .digits{
+    display: flex; align-items: center; justify-content: center; gap: 2px;
+    font-family:'Bebas Neue','Inter',sans-serif; font-size: min(24vw, 96px); line-height: 1; color:#fff;
+    font-variant-numeric: tabular-nums; text-shadow: 0 1px 8px rgba(0,0,0,.25);
+  }
+  .half .dg{
+    background: transparent; border: none; color: inherit; font: inherit; padding: 0 4px; cursor: pointer;
+    border-radius: 12px; -webkit-tap-highlight-color: transparent;
+  }
+  .half .dg:active{ background: rgba(255,255,255,.18); }
+  .dg-input{
+    width: 1.7em; font: inherit; color:#fff; text-align:center; background: rgba(0,0,0,.35);
+    border: 2px solid rgba(255,255,255,.8); border-radius: 12px; padding: 0; -moz-appearance: textfield;
+  }
+  .dg-input::-webkit-outer-spin-button,.dg-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .h-start{ position: absolute; top: 8px; inset-inline-start: 10px; display: flex; align-items: center; gap: 6px; }
+  .h-label{ font-size: 12px; font-weight: 700; color: rgba(255,255,255,.8); letter-spacing: .3px; }
+  .h-tools{ position: absolute; top: 8px; inset-inline-end: 10px; display: flex; gap: 6px; }
+  .h-btn{
+    width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(0,0,0,.22); color: #fff; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .h-drag{ touch-action: none; cursor: grab; }
+  .half .prog{ position:absolute; bottom:0; inset-inline-start:0; height:6px; width:0; background: rgba(255,255,255,.9); }
+  .stage.locked .h-start .h-drag, .stage.locked .h-tools{ visibility: hidden; }
+  .stage.locked .half .dg{ pointer-events: none; }
+  .stage.locked .add-circle{ display: none; }
+  .add-circle{
+    display: flex; align-items: center; justify-content: center;
+    width: 76px; height: 76px; margin: 14px auto 6px; border-radius: 50%;
+    background: transparent; border: 2.5px solid rgba(255,255,255,.55); color: rgba(255,255,255,.85); cursor: pointer;
+  }
+  .add-circle:active{ background: rgba(255,255,255,.12); }
+  .stage .controls{ flex-shrink: 0; width: 100%; max-width: 520px; gap: 10px; }
+  .stage .volume-row{ position: static; left:auto; right:auto; bottom:auto; width:100%; margin-top: 2px; }
+  .half{ min-height: 112px; padding: 34px 12px 10px; }
+  .half .digits{ font-size: min(17vw, 70px); }
+  .sb-lbl{ white-space: nowrap; font-size: 12px; }
+  .sb-item{ gap: 5px; }
+  .sb-stepper button{ width: 28px; height: 28px; font-size: 16px; }
+  .sb-stepper{ gap: 4px; }
+  .sb-stepper span{ min-width: 52px; font-size: 22px; }
+  .sb-item:first-child .sb-stepper span{ min-width: 30px; }
+  .add-circle{ flex-shrink: 0; }
+
+  /* ===== v42: every timer is a full screen; scroll between them ===== */
+  .stage{ padding-inline: 0; }
+  .setsbar{ padding-inline: 14px; }
+  .sb-agenda{ width:34px; height:34px; border-radius:50%; border:none; background: rgba(255,255,255,.12); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .setsbar.running .sb-agenda{ display:none; }
+  .cycles-scroll{ max-width:none; gap:0; padding:0; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+  .cycles-scroll.agenda{ scroll-snap-type: none; gap:0; padding: 4px 14px; }
+  .iv-list{ display: contents; }
+  .cyc{ height: 100%; border-radius: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+  .cyc .half{ height: 100%; min-height: 0; padding: 0; }
+  .cyc .digits{ font-size: min(30vw, 150px); }
+  .h-tools{ top: 14px; inset-inline-end: 14px; }
+  .h-btn{ width: 42px; height: 42px; }
+  .h-drag{ display: none; position: absolute; top: 50%; inset-inline-end: 12px; transform: translateY(-50%); }
+  .half .prog{ height: 8px; }
+  .add-page{ height: 100%; display:flex; align-items:center; justify-content:center; scroll-snap-align: start; flex-shrink:0; }
+  .add-circle{ width: 110px; height: 110px; margin: 0; }
+  .add-circle svg{ width: 52px; height: 52px; }
+  .stage.locked .add-page{ display: none; }
+  /* agenda: compact rows */
+  .cycles-scroll.agenda .cyc{ height: 78px; border-radius: 18px; margin-bottom: 10px; overflow: hidden; }
+  .cycles-scroll.agenda .cyc .digits{ font-size: 46px; justify-content: flex-start; padding-inline-start: 18px; }
+  .cycles-scroll.agenda .cyc .half{ justify-content: flex-start; }
+  .cycles-scroll.agenda .h-tools{ display: none; }
+  .cycles-scroll.agenda .h-drag{ display: flex; }
+  .cycles-scroll.agenda .add-page{ height: 96px; }
+  .cycles-scroll.agenda .add-circle{ width: 64px; height: 64px; }
+  .cycles-scroll.agenda .add-circle svg{ width: 30px; height: 30px; }
+  .stage.locked .cycles-scroll.agenda .h-drag{ display:none; }
+  .cycles-scroll{ touch-action: pan-y; }
+
+  /* ===== v42b: controls are part of the colored page ===== */
+  .stage .cycles-scroll{ position:absolute; top:116px; bottom:0; left:0; right:0; width:auto; z-index:1; }
+  .stage .controls{
+    position:absolute; z-index:7; left:16px; right:16px; margin:0 auto; max-width:520px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)); gap:10px; background: transparent;
+  }
+  .stage .controls .btn{
+    background: transparent !important; color:#fff !important; border: 2px solid #fff !important;
+    box-shadow:none !important; text-shadow: 0 1px 6px rgba(0,0,0,.2);
+  }
+  .stage .controls .btn:disabled{ opacity:.4; }
+  .stage .controls .btn:active:not(:disabled){ background: rgba(255,255,255,.2) !important; }
+  .cyc .half{ padding-bottom: 200px; }
+  .cycles-scroll.agenda{ padding-bottom: 220px; }
+  .add-page{ padding-bottom: 200px; box-sizing:border-box; }
+  .cycles-scroll.agenda .add-page{ padding-bottom:0; }
+  .stage .controls{ width:auto; }
+  .cycles-scroll.agenda .cyc .half{ padding-bottom:0; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -1442,6 +1588,19 @@
   </header>
 
   <div class="stage" id="stageEl">
+    <div class="setsbar" id="setsBar">
+      <div class="sb-item"><span class="sb-lbl">סטים</span>
+        <div class="stepper sb-stepper" id="editorSetsStepper" data-key="editorSets"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div></div>
+      <div class="sb-item"><span class="sb-lbl">בין סטים</span>
+        <div class="stepper sb-stepper" id="editorSetRestStepper" data-key="editorSetRest"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div></div>
+      <button type="button" class="sb-agenda" id="agendaBtn" aria-label="תצוגת אג'נדה" title="אג'נדה"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="sb-status" id="sbStatus" hidden><span id="sbText"></span><span id="sbTime"></span></div>
+    </div>
+    <div class="cycles-scroll" id="cyclesScroll">
+      <div class="iv-list" id="ivList"></div>
+      <div class="add-page"><button type="button" class="add-circle" id="addIvBtn" aria-label="הוסף טיימר"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    </div>
+    <div class="legacy" hidden>
     <div class="run-counter" id="runCounter" hidden></div>
 
     <!-- Shown only while running / finished: the big ring + countdown. -->
@@ -1464,24 +1623,16 @@
       <div class="phase-pill idle big" id="phasePill">מוכן להתחיל</div>
       <div class="rounds" id="roundsDisplay">—</div>
       <div class="now-playing" id="nowPlaying"></div>
+      <div class="quick-icons" id="quickIcons">
+        <button type="button" class="quick-icon" id="openEditorBtn" aria-label="עריכת אינטרוולים" title="אינטרוולים">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        </button>
+        <button type="button" class="quick-icon" id="openSetsBtn" aria-label="סטים ומנוחה בין סטים" title="סטים">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>
+        </button>
+      </div>
     </div>
 
-    <!-- Shown only while idle: the whole workout, built on one screen —
-         sets/rest steppers (long-press-to-edit) and every interval as a
-         card, stacked. No separate settings screen anymore. -->
-    <div class="idle-builder" id="idleBuilder">
-      <div class="sets-card">
-        <div class="sets-card-row">
-          <span class="lbl">סטים (חזרות על כל האינטרוולים)</span>
-          <div class="stepper" id="editorSetsStepper" data-key="editorSets"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div>
-        </div>
-        <div class="sets-card-row">
-          <span class="lbl">מנוחה בין סטים</span>
-          <div class="stepper" id="editorSetRestStepper" data-key="editorSetRest"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div>
-        </div>
-      </div>
-      <div class="iv-list" id="ivList"></div>
-      <button type="button" class="add-iv-btn" id="addIvBtn">+ הוסף אינטרוול</button>
     </div>
 
     <div class="ready-overlay" id="readyOverlay" hidden>
@@ -1597,7 +1748,7 @@
       soundAssignment: 'builtin:marimba', // work sound: null (silent) | 'builtin:<id>' | <trackId number>
       once: false,
       // Each block is work + rest. rest 0 = no rest phase.
-      restSec: 10,
+      restSec: 0,
       restColor: '#35d0a0',
       restSound: 'builtin:ding'
     }, opts);
@@ -1733,6 +1884,20 @@
       if(iv.restSound == null) iv.restSound = 'builtin:ding';
     });
     p.soundsV2 = true;
+  })(currentPreset);
+  // v42: there is no "rest" attached to a timer any more — each timer is
+  // simply a stretch of time. An old attached rest becomes its own timer.
+  (function splitRests(p){
+    var out = [];
+    p.intervals.forEach(function(iv){
+      out.push(iv);
+      if((iv.restSec||0) > 0){
+        out.push(makeInterval({ name:'טיימר', durationSec: iv.restSec, color: iv.restColor || '#35d0a0',
+          soundAssignment: iv.restSound == null ? null : iv.restSound, restSec: 0 }));
+      }
+      iv.restSec = 0;
+    });
+    p.intervals = out;
   })(currentPreset);
   function savePresets(){ try{ localStorage.setItem(WORKOUT_KEY, JSON.stringify(currentPreset)); }catch(e){} }
   savePresets();
@@ -1925,17 +2090,20 @@
   // A sound with a color "takes over the screen" while its phase runs.
   function setFlood(color){
     activeFloodColor = color;
+    return;
     document.documentElement.style.setProperty('--flood', color);
     floodBg.classList.add('on');
     stageEl.classList.add('flooded');
   }
   function clearFlood(){
+    markActive(null);
     activeFloodColor = null;
     floodBg.classList.remove('on');
     stageEl.classList.remove('flooded');
   }
   function applyFloodForStep(step){
     var iv = step.iv;
+    markActive(step);
     // The interval's own color (the one set on its card) always wins, so
     // the running screen matches the card. A built-in sound's color is only
     // a fallback for an interval that has no color of its own.
@@ -1950,6 +2118,7 @@
     if(color) setFlood(color); else clearFlood();
   }
   function setRingFraction(frac){
+    if(activeHalf && activeHalf.prog) activeHalf.prog.style.width = (frac*100).toFixed(1) + '%';
     var offset = RING_C * (1 - frac);
     ringProgress.style.strokeDashoffset = offset.toFixed(2);
   }
@@ -2447,6 +2616,7 @@
   var countdownView = document.getElementById('countdownView');
   var idleBuilder = document.getElementById('idleBuilder');
   function isIdleNow(){ return stepIndex === 0 && !running && phaseRemainingMs === null; }
+  var quickIcons = document.getElementById('quickIcons');
   var volumeRow = document.getElementById('volumeRow');
   var volumeSlider = document.getElementById('volumeSlider');
   volumeSlider.value = Math.round(userVol * 100);
@@ -2459,8 +2629,11 @@
   function updateIdleBuilderVisibility(){
     var idle = isIdleNow();
     volumeRow.hidden = idle;
-    countdownView.hidden = idle;
-    idleBuilder.hidden = !idle;
+    countdownView.hidden = false;
+    quickIcons.hidden = !idle;
+    stageEl.classList.toggle('locked', !idle);
+    document.getElementById('sbStatus').hidden = idle;
+    document.getElementById('setsBar').classList.toggle('running', !idle);
   }
 
   function finishWorkout(){
@@ -3493,103 +3666,128 @@
     renderEditorIntervals();
   }
 
+  // ---------- cycle blocks: one tall block per cycle, work on top and rest
+  // below in one continuous piece. Tap MM or SS to edit it in place. ----------
+  var activeHalf = null;   // { digitsEl, prog } of the half that is running now
+  function clampSec(v){ return Math.max(0, Math.min(5999, v)); }
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function setDigits(half, sec){
+    sec = Math.max(0, Math.ceil(sec));
+    half.mm.textContent = pad2(Math.floor(sec/60));
+    half.ss.textContent = pad2(sec % 60);
+  }
+  function eachHalf(fn){
+    if(!ivListEl) return;
+    Array.prototype.forEach.call(ivListEl.querySelectorAll('.cyc'), function(card){
+      ['work','rest'].forEach(function(k){ if(card._halves && card._halves[k]) fn(card, card._halves[k], k); });
+    });
+  }
+  function markActive(step){
+    activeHalf = null;
+    var any = false, wantId = null, wantKind = null;
+    if(step && step.iv && step.phase !== 'idle' && step.phase !== 'done' && step.phase !== '__setrest__'){
+      var id = step.iv.id || '';
+      if(/_rest$/.test(id)){ wantKind = 'rest'; wantId = id.slice(0, -5); } else { wantKind = 'work'; wantId = id; }
+    }
+    eachHalf(function(card, h, k){
+      var iv = card._iv;
+      setDigits(h, k === 'work' ? iv.durationSec : (iv.restSec || 0));
+      h.prog.style.width = '0%';
+      var on = (iv.id === wantId && k === wantKind);
+      h.el.classList.toggle('active', on);
+      if(on){ activeHalf = h; any = true; }
+    });
+    var running_ = !!wantId;
+    if(ivListEl) ivListEl.classList.toggle('has-active', running_);
+    if(any && activeHalf){
+      var el = activeHalf.el.parentNode;
+      try{ el.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){}
+    }
+  }
+  // Mirror the (hidden) legacy countdown text into whichever half is live.
+  new MutationObserver(function(){
+    var t = timeDisplay.textContent || '';
+    var m = /^(\d+):(\d\d)$/.exec(t);
+    if(!m) return;
+    if(activeHalf){ activeHalf.mm.textContent = pad2(+m[1]); activeHalf.ss.textContent = m[2]; }
+    document.getElementById('sbTime').textContent = (activeHalf ? '' : t);
+  }).observe(timeDisplay, { childList:true, characterData:true, subtree:true });
+  new MutationObserver(function(){
+    document.getElementById('sbText').textContent = roundsDisplay.textContent || '';
+  }).observe(roundsDisplay, { childList:true, characterData:true, subtree:true });
+
+  function deleteInterval(id){
+    if(currentPreset.intervals.length <= 1){ alert('צריך לפחות מחזור אחד באימון'); return; }
+    currentPreset.intervals = currentPreset.intervals.filter(function(x){ return x.id !== id; });
+    savePresets();
+    renderEditorIntervals();
+  }
+
   function buildIvCard(iv, idx, total){
     var card = document.createElement('div');
-    card.className = 'iv-card';
-    card.innerHTML =
-      '<div class="iv-card-top">' +
-        '<button type="button" class="iv-drag-handle" aria-label="גרור לשינוי הסדר" title="גרור לשינוי הסדר"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>' +
-        '<span class="iv-name-label"></span>' +
-        '<input type="text" class="iv-name-input" maxlength="20" hidden>' +
-        '<button type="button" class="iv-icon-btn iv-dup" title="העתק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
-        '<button type="button" class="iv-icon-btn iv-del" title="מחק"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
-      '</div>' +
-      '<div class="iv-parts"><div class="iv-part iv-part-work"></div><div class="iv-part iv-part-rest"></div></div>';
+    card.className = 'cyc';
+    card._iv = iv;
+    card._halves = {};
+    card.innerHTML = '<div class="half half-work"></div>';
+    var el = card.querySelector('.half');
+    el.style.background = iv.color;
+    el.innerHTML =
+      '<button type="button" class="h-btn h-drag" aria-label="גרור" title="גרור לשינוי הסדר"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg></button>' +
+      '<div class="digits" dir="ltr"><button type="button" class="dg mm"></button><span class="colon">:</span><button type="button" class="dg ss"></button></div>' +
+      '<div class="h-tools">' +
+        '<button type="button" class="h-btn h-sound" aria-label="צליל" title="צליל"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>' +
+        '<button type="button" class="h-btn h-color" aria-label="צבע" title="צבע"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2-.6-1.2.2-2.5 1.6-2.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/></svg></button>' +
+        '<button type="button" class="h-btn h-del" aria-label="מחק" title="מחק"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+      '</div><div class="prog"></div>';
+    var h = { el: el, mm: el.querySelector('.mm'), ss: el.querySelector('.ss'), prog: el.querySelector('.prog') };
+    card._halves.work = h;
+    setDigits(h, iv.durationSec);
 
-    // The name shows as plain text (not an always-editable box) — hold it
-    // down to rename, same long-press-to-edit pattern as everything else.
-    var nameLabel = card.querySelector('.iv-name-label');
-    var nameInput = card.querySelector('.iv-name-input');
-    nameLabel.textContent = iv.name;
-    var renamingNow = false;
-    function openRename(){
-      if(renamingNow) return;
-      renamingNow = true;
-      nameInput.value = iv.name;
-      nameLabel.hidden = true;
-      nameInput.hidden = false;
-      nameInput.focus();
-      nameInput.select();
-    }
-    function closeRename(commit){
-      if(!renamingNow) return;
-      renamingNow = false;
-      if(commit){
-        iv.name = nameInput.value.trim() || iv.name;
+    function edit(btn, isMin){
+      if(stageEl.classList.contains('locked') || ivListEl.classList.contains('agenda')) return;
+      var cur = iv.durationSec;
+      var val = isMin ? Math.floor(cur/60) : cur % 60;
+      var input = document.createElement('input');
+      input.type = 'number'; input.inputMode = 'numeric';
+      input.className = 'dg-input';
+      input.min = 0; input.max = isMin ? 99 : 59;
+      input.value = val;
+      btn.replaceWith(input);
+      input.focus(); input.select();
+      var done = false;
+      function commit(){
+        if(done) return; done = true;
+        var n = parseInt(input.value, 10);
+        if(isNaN(n)) n = val;
+        n = Math.max(0, Math.min(isMin ? 99 : 59, n));
+        iv.durationSec = clampSec(isMin ? (n*60 + cur % 60) : (Math.floor(cur/60)*60 + n));
         savePresets();
+        input.replaceWith(btn);
+        setDigits(h, iv.durationSec);
+        if(isIdleNow()){ plan = buildPlan(currentPreset); renderIdleFrame(); }
       }
-      nameLabel.textContent = iv.name;
-      nameInput.hidden = true;
-      nameLabel.hidden = false;
-    }
-    nameInput.addEventListener('keydown', function(e){
-      if(e.key === 'Enter'){ e.preventDefault(); closeRename(true); }
-      else if(e.key === 'Escape'){ closeRename(false); }
-    });
-    nameInput.addEventListener('blur', function(){ closeRename(true); });
-    wireLongPress(nameLabel, function(){ return true; }, openRename);
-
-    // Each card has two colored parts: work and rest. Each has its own
-    // time, color and sound. Rest 00:00 means no rest phase.
-    function wirePart(partEl, cfg){
-      partEl.style.background = cfg.getColor();
-      partEl.innerHTML =
-        '<div class="iv-part-head"><span class="iv-part-label"></span>' +
-        '<div class="iv-part-tools">' +
-          '<button type="button" class="iv-color-swatch" aria-label="צבע"></button>' +
-          '<button type="button" class="iv-icon-btn iv-gear" title="צליל"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>' +
-        '</div></div>' +
-        '<div class="iv-big-stepper"><button type="button" data-dir="-1">−</button><span class="iv-big-val"></span><button type="button" data-dir="1">+</button></div>';
-      partEl.querySelector('.iv-part-label').textContent = cfg.label;
-      wireStepper(partEl.querySelector('.iv-big-stepper'), {
-        get:cfg.getSec, set:function(v){ cfg.setSec(v); savePresets(); }, min:0, max:1800, step:5, isTime:true
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+        else if(e.key === 'Escape'){ input.value = val; input.blur(); }
       });
-      var sw = partEl.querySelector('.iv-color-swatch');
-      sw.style.background = cfg.getColor();
-      sw.addEventListener('click', function(){
-        openColorPopup(iv.id + cfg.key, function(hex){
-          cfg.setColor(hex);
-          partEl.style.background = hex;
-          sw.style.background = hex;
-          savePresets();
-        }, cfg.getColor());
-      });
-      partEl.querySelector('.iv-gear').addEventListener('click', function(){ openSoundLibrary(cfg.soundTarget); });
     }
-    wirePart(card.querySelector('.iv-part-work'), {
-      key:'w', label:'עבודה',
-      getColor:function(){ return iv.color; }, setColor:function(h){ iv.color = h; },
-      getSec:function(){ return iv.durationSec; }, setSec:function(v){ iv.durationSec = v; },
-      soundTarget: iv
+    h.mm.addEventListener('click', function(){ edit(h.mm, true); });
+    h.ss.addEventListener('click', function(){ edit(h.ss, false); });
+    el.querySelector('.h-color').addEventListener('click', function(){
+      openColorPopup(iv.id + 'w', function(hex){ iv.color = hex; el.style.background = hex; savePresets(); }, iv.color);
     });
-    var restTarget = {
-      get name(){ return 'מנוחה'; },
-      get soundAssignment(){ return iv.restSound; },
-      set soundAssignment(v){ iv.restSound = v; }
-    };
-    wirePart(card.querySelector('.iv-part-rest'), {
-      key:'r', label:'מנוחה',
-      getColor:function(){ return iv.restColor || '#35d0a0'; }, setColor:function(h){ iv.restColor = h; },
-      getSec:function(){ return iv.restSec || 0; }, setSec:function(v){ iv.restSec = v; },
-      soundTarget: restTarget
+    el.querySelector('.h-sound').addEventListener('click', function(){ openSoundLibrary(iv); });
+    el.querySelector('.h-del').addEventListener('click', function(){ deleteInterval(iv.id); });
+    // In the agenda (zoomed-out) view, tapping a row zooms back to it.
+    card.addEventListener('click', function(e){
+      if(!ivListEl.classList.contains('agenda')) return;
+      if(e.target.closest('.h-drag')) return;
+      setAgenda(false, card);
     });
 
-    card.querySelector('.iv-dup').addEventListener('click', function(){ duplicateInterval(iv.id); });
-    card.querySelector('.iv-del').addEventListener('click', function(){ deleteInterval(iv.id); });
-
-    // Drag-to-reorder: hold the handle and drag the card up/down past its
-    // neighbors; dropping it reorders the underlying list and persists.
-    var dragHandle = card.querySelector('.iv-drag-handle');
+    // Drag-to-reorder — in the agenda view, by the handle.
+    var dragHandle = card.querySelector('.h-drag');
     var dragging = false, dragStartY = 0, dragPointerId = null;
     function onDragMove(e){
       if(!dragging) return;
@@ -3599,13 +3797,10 @@
       if(!dragging) return;
       dragging = false;
       try{ dragHandle.releasePointerCapture(dragPointerId); }catch(err){}
-      var finalRect = card.getBoundingClientRect();
-      var myMid = finalRect.top + finalRect.height/2;
+      var r0 = card.getBoundingClientRect();
+      var myMid = r0.top + r0.height/2;
       card.classList.remove('dragging');
-      card.style.transition = 'transform .15s ease';
       card.style.transform = '';
-      setTimeout(function(){ card.style.transition = ''; card.style.position = ''; card.style.zIndex = ''; }, 160);
-
       var others = Array.prototype.slice.call(ivListEl.children).filter(function(c){ return c !== card; });
       var insertionIndex = 0;
       others.forEach(function(c){
@@ -3617,24 +3812,61 @@
         currentPreset.intervals.splice(curIdx, 1);
         currentPreset.intervals.splice(insertionIndex, 0, iv);
         savePresets();
+        if(isIdleNow()){ plan = buildPlan(currentPreset); }
       }
       renderEditorIntervals();
     }
     dragHandle.addEventListener('pointerdown', function(e){
+      if(stageEl.classList.contains('locked')) return;
       dragging = true;
       dragStartY = e.clientY;
       dragPointerId = e.pointerId;
       try{ dragHandle.setPointerCapture(e.pointerId); }catch(err){}
-      card.style.position = 'relative';
-      card.style.zIndex = '20';
       card.classList.add('dragging');
     });
     dragHandle.addEventListener('pointermove', onDragMove);
     dragHandle.addEventListener('pointerup', onDragEnd);
     dragHandle.addEventListener('pointercancel', onDragEnd);
-
     return card;
   }
+
+  // Zoomed-out agenda view: every timer as a compact row. Pinch in to get
+  // there, pinch out (or tap a row) to go back to full screens.
+  var cyclesScroll = document.getElementById('cyclesScroll');
+  function setAgenda(on, focusCard){
+    ivListEl.classList.toggle('agenda', on);
+    cyclesScroll.classList.toggle('agenda', on);
+    var tgt = focusCard;
+    if(!tgt){ tgt = on ? null : null; }
+    if(tgt){ setTimeout(function(){ try{ tgt.scrollIntoView({ block:'start' }); }catch(e){} }, 30); }
+  }
+  document.getElementById('agendaBtn').addEventListener('click', function(){
+    setAgenda(!cyclesScroll.classList.contains('agenda'), currentVisibleCard());
+  });
+  function currentVisibleCard(){
+    var cards = ivListEl.querySelectorAll('.cyc'), top = cyclesScroll.getBoundingClientRect().top, best = null, bd = 1e9;
+    Array.prototype.forEach.call(cards, function(c){ var d = Math.abs(c.getBoundingClientRect().top - top); if(d < bd){ bd = d; best = c; } });
+    return best;
+  }
+  (function pinch(){
+    var d0 = 0;
+    function dist(t){ var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx*dx + dy*dy); }
+    cyclesScroll.addEventListener('touchstart', function(e){ d0 = e.touches.length === 2 ? dist(e.touches) : 0; }, { passive:true });
+    cyclesScroll.addEventListener('touchmove', function(e){
+      if(e.touches.length !== 2 || !d0) return;
+      var r = dist(e.touches) / d0;
+      var on = cyclesScroll.classList.contains('agenda');
+      if(!on && r < 0.78){ d0 = 0; setAgenda(true, null); }
+      else if(on && r > 1.3){ d0 = 0; setAgenda(false, currentVisibleCard()); }
+    }, { passive:true });
+    cyclesScroll.addEventListener('wheel', function(e){
+      if(!e.ctrlKey) return;
+      e.preventDefault();
+      var on = cyclesScroll.classList.contains('agenda');
+      if(e.deltaY > 0 && !on) setAgenda(true, null);
+      else if(e.deltaY < 0 && on) setAgenda(false, currentVisibleCard());
+    }, { passive:false });
+  })();
 
   function renderEditorIntervals(){
     ivListEl.innerHTML = '';
@@ -3653,14 +3885,14 @@
   });
   renderEditorIntervals();
 
-  // "+ הוסף אינטרוול" at the bottom of the list adds a new card.
+  // The outlined "+" circle under the list adds another cycle.
   document.getElementById('addIvBtn').addEventListener('click', function(){
-    currentPreset.intervals.push(makeInterval({ name: 'אינטרוול ' + (currentPreset.intervals.length+1), durationSec: 50, restSec: 10, color: nextIvColor() }));
+    currentPreset.intervals.push(makeInterval({ name: 'טיימר ' + (currentPreset.intervals.length+1), durationSec: 30, restSec: 0, color: nextIvColor() }));
     savePresets();
     renderEditorIntervals();
-    var cards = ivListEl.querySelectorAll('.iv-card');
+    var cards = ivListEl.querySelectorAll('.cyc');
     var last = cards[cards.length-1];
-    if(last) last.scrollIntoView({ behavior:'smooth', block:'center' });
+    if(last) last.scrollIntoView({ behavior:'smooth', block:'start' });
   });
 
   // ---------- sound library popup (upload/record tracks) — opened from
