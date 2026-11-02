@@ -1652,6 +1652,14 @@
     .cycles-scroll.agenda .cyc-title{ font-size: 17px; }
     .cycles-scroll.agenda .cyc{ height: 96px; }
   }
+/* v55: tidy sets bar: sets | units | rest between sets */
+  .setsbar{ gap: 6px; padding-inline: 10px; }
+  .setsbar .sb-item{ flex-direction: column; align-items: center; gap: 2px; }
+  .setsbar .sb-lbl{ font-size: 12px; }
+  .sb-stepper button{ width: 28px; height: 28px; font-size: 16px; }
+  .sb-stepper span{ min-width: 34px; font-size: 22px; }
+  .sb-count{ font-family:'Bebas Neue','Inter',sans-serif; font-size: 26px; color:#fff; line-height: 28px; min-width: 34px; text-align:center; }
+  .setsbar .sb-agenda{ width: 32px; height: 32px; flex-shrink: 0; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -1676,6 +1684,7 @@
     <div class="setsbar" id="setsBar">
       <div class="sb-item"><span class="sb-lbl">סטים</span>
         <div class="stepper sb-stepper" id="editorSetsStepper" data-key="editorSets"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div></div>
+      <div class="sb-item sb-units"><span class="sb-lbl">יחידות</span><span class="sb-count" id="sbUnits">0</span></div>
       <div class="sb-item"><span class="sb-lbl">בין סטים</span>
         <div class="stepper sb-stepper" id="editorSetRestStepper" data-key="editorSetRest"><button data-dir="-1">−</button><span></span><button data-dir="1">+</button></div></div>
       <button type="button" class="sb-agenda" id="agendaBtn" aria-label="תצוגת אג'נדה" title="אג'נדה"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
@@ -4169,6 +4178,14 @@ if ('serviceWorker' in navigator) {
       }
     });
   })();
+</script>
+<script>
+(function(){
+  var list=document.getElementById('ivList'), out=document.getElementById('sbUnits');
+  function upd(){ out.textContent = list.querySelectorAll('.cyc').length; }
+  new MutationObserver(upd).observe(list,{childList:true});
+  upd();
+})();
 </script>
 </body>
 </html>
