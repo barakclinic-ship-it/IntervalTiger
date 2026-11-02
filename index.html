@@ -1569,6 +1569,14 @@
   .cycles-scroll.agenda .add-page{ padding-bottom:0; }
   .stage .controls{ width:auto; }
   .cycles-scroll.agenda .cyc .half{ padding-bottom:0; }
+
+  /* v44: bigger type, and numbers can be typed in the agenda too */
+  .cyc .digits{ font-size: min(31vw, 190px); }
+  .cycles-scroll.agenda .cyc{ height: 96px; }
+  .cycles-scroll.agenda .cyc .digits{ font-size: 62px; }
+  .stage .controls .btn{ font-size: 17px; }
+  .stage .controls .controls-row.secondary .btn{ font-size: 14px; }
+  .sb-status{ font-size: 34px; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -3743,7 +3751,7 @@
     setDigits(h, iv.durationSec);
 
     function edit(btn, isMin){
-      if(stageEl.classList.contains('locked') || ivListEl.classList.contains('agenda')) return;
+      if(stageEl.classList.contains('locked')) return;
       var cur = iv.durationSec;
       var val = isMin ? Math.floor(cur/60) : cur % 60;
       var input = document.createElement('input');
@@ -3781,7 +3789,7 @@
     // In the agenda (zoomed-out) view, tapping a row zooms back to it.
     card.addEventListener('click', function(e){
       if(!ivListEl.classList.contains('agenda')) return;
-      if(e.target.closest('.h-drag')) return;
+      if(e.target.closest('.h-drag, .dg, .dg-input')) return;
       setAgenda(false, card);
     });
 
