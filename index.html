@@ -1590,11 +1590,44 @@
   .stage .controls #startBtn svg{ width: 32px; height: 32px; }
   .stage .controls .controls-row.secondary{ direction: rtl; }
   .stage .controls .controls-row.secondary .btn{ min-height: 60px; }
+
+  /* v50: phone on its side — app on one half, a real clock on the other */
+  .clock-panel{ display:none; }
+  @media (orientation: landscape) and (max-height: 620px){
+    html, body{ overflow: hidden; }
+    .clock-panel{
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      position:fixed; top:0; bottom:0; right:0; width:50%; background:#000; color:#fff; z-index:30;
+      font-family:'Bebas Neue','Inter',sans-serif; font-variant-numeric: tabular-nums; line-height:.86;
+      border-left:1px solid rgba(255,255,255,.18);
+    }
+    .clock-h, .clock-m{ font-size: min(46vh, 24vw); }
+    .app{ max-width: none; width: 50%; margin-inline: 0 auto; margin-left:0; margin-right:auto; }
+    .stage{ right: 50%; width: 50%; padding-top: calc(52px + env(safe-area-inset-top, 0px)); }
+    .stage .cycles-scroll{ top: 92px; }
+    .cyc .digits{ font-size: min(15vw, 30vh, 130px); }
+    .cyc .half{ padding-bottom: 96px; }
+    .add-page{ padding-bottom: 96px; }
+    .cycles-scroll.agenda{ padding-bottom: 110px; }
+    .cycles-scroll.agenda .cyc .digits{ font-size: 40px; }
+    .cycles-scroll.agenda .cyc{ height: 70px; }
+    .stage .controls{ left: 10px; right: 10px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); gap: 6px; }
+    .stage .controls .btn{ min-height: 40px; padding-block: 4px; }
+    .stage .controls .controls-row.secondary .btn{ min-height: 40px; }
+    .stage .controls svg, .stage .controls #startBtn svg{ width: 22px; height: 22px; }
+    .stage .volume-row{ margin-top: 0; }
+    .stage .volume-row svg{ width: 22px; height: 22px; }
+    .h-btn{ width: 34px; height: 34px; }
+    .h-tools{ top: 8px; inset-inline-end: 8px; }
+    .sb-status{ font-size: 24px; }
+    header{ position: absolute; top: 0; right: 0; left: 0; z-index: 12; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
 
 <div class="flood-bg" id="floodBg"></div>
+<div class="clock-panel" id="clockPanel" aria-hidden="true"><div class="clock-h" id="clockH">00</div><div class="clock-m" id="clockM">00</div></div>
 <div class="app">
   <header>
     <div class="brand">
@@ -4044,6 +4077,16 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./service-worker.js').catch(function(){});
   });
 }
+</script>
+<script>
+  // ---------- real clock (shown only when the phone is on its side) ----------
+  (function realClock(){
+    var h = document.getElementById('clockH'), m = document.getElementById('clockM');
+    function pad(n){ return (n < 10 ? '0' : '') + n; }
+    function upd(){ var d = new Date(); h.textContent = pad(d.getHours()); m.textContent = pad(d.getMinutes()); }
+    upd();
+    setInterval(upd, 1000);
+  })();
 </script>
 </body>
 </html>
