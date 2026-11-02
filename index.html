@@ -2809,7 +2809,7 @@
     userVol = Math.max(0, Math.min(1, parseInt(volumeSlider.value, 10) / 100));
     try{ localStorage.setItem(VOL_KEY, String(userVol)); }catch(e){}
     if(masterMakeup && actx){ masterMakeup.gain.setTargetAtTime(volGain(), actx.currentTime, 0.01); }
-    try{ if(duckRestoreHandle){ duckBaseVolume = userVol; } else { audioEl.volume = userVol; } }catch(e){}
+    try{ if(duckRestoreHandle){ duckBaseVolume = audioEl._routed ? 1 : userVol; } else { audioEl.volume = audioEl._routed ? 1 : userVol; } }catch(e){}
   });
   function updateIdleBuilderVisibility(){
     var idle = isIdleNow();
@@ -3045,6 +3045,19 @@
     });
   }
 
+  // Recorded/uploaded tracks play through the same boosted master chain as the
+  // built-in beeps (a bare <audio> element is capped at 1.0 and was far too quiet).
+  function routeAudioEl(){
+    if(audioEl._routed) return;
+    try{
+      var c = ctx(); if(!c) return;
+      if(c.state === 'suspended'){ c.resume(); }
+      var srcNode = c.createMediaElementSource(audioEl);
+      srcNode.connect(comp(c));
+      audioEl._routed = true;
+      audioEl.volume = 1;
+    }catch(e){}
+  }
   var tracks = [];
   var currentTrackId = null;
   var currentBuiltinId = null;
@@ -3600,6 +3613,7 @@
     shouldLoopFull = !!loop && !seg; // segments don't loop (see timeupdate above); full tracks loop manually (see 'ended' above)
     audioEl.loop = false;
     audioEl._durationFixApplied = false;
+    routeAudioEl();
     audioEl.src = URL.createObjectURL(srcBlob);
     if(seg){
       var seekTo = currentSegStart;
