@@ -2404,6 +2404,24 @@
     }
     return masterMakeup;
   }
+  // Built-in beeps go through a drive stage (gain + soft clip) so their average
+  // level is as loud as a full-scale recording, then through the master limiter.
+  var synthBus = null;
+  function synthDest(c){
+    var m = comp(c);
+    if(!synthBus){
+      synthBus = c.createGain();
+      synthBus.gain.value = 2.5;
+      var ws = c.createWaveShaper();
+      var n = 2048, curve = new Float32Array(n);
+      for(var i = 0; i < n; i++){ var x = i * 2 / (n - 1) - 1; curve[i] = Math.tanh(3 * x); }
+      ws.curve = curve;
+      try{ ws.oversample = '4x'; }catch(e){}
+      synthBus.connect(ws);
+      ws.connect(m);
+    }
+    return synthBus;
+  }
   // Turns the background track down for a moment so a cue beep cuts
   // through it instead of getting buried under it, then brings it back.
   var duckRestoreHandle = null;
@@ -2428,7 +2446,7 @@
     var c = ctx();
     if(!c) return;
     var t0 = c.currentTime;
-    var dest = comp(c);
+    var dest = synthDest(c);
     var osc = c.createOscillator();
     var gain = c.createGain();
     osc.type = wave || 'sine';
@@ -2461,7 +2479,7 @@
     if(!c) return;
     duckMusic(550);
     var t0 = c.currentTime;
-    var dest = comp(c);
+    var dest = synthDest(c);
     var osc = c.createOscillator();
     var gain = c.createGain();
     osc.type = 'square';
@@ -2487,7 +2505,7 @@
   // ---------- built-in loopable alert sounds (no upload needed) ----------
   function bellTone(){
     var c = ctx(); if(!c) return;
-    var t0 = c.currentTime, dest = comp(c);
+    var t0 = c.currentTime, dest = synthDest(c);
     [1, 2, 2.4, 3.8].forEach(function(mult, i){
       var osc = c.createOscillator(), g = c.createGain();
       osc.type = 'sine';
@@ -2501,7 +2519,7 @@
   }
   function whistleTone(){
     var c = ctx(); if(!c) return;
-    var t0 = c.currentTime, dest = comp(c);
+    var t0 = c.currentTime, dest = synthDest(c);
     var osc = c.createOscillator(), g = c.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(1800, t0);
@@ -2515,7 +2533,7 @@
   }
   function buzzTone(){
     var c = ctx(); if(!c) return;
-    var t0 = c.currentTime, dest = comp(c);
+    var t0 = c.currentTime, dest = synthDest(c);
     var osc = c.createOscillator(), g = c.createGain();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(180, t0);
@@ -2527,7 +2545,7 @@
   }
   function sirenTone(){
     var c = ctx(); if(!c) return;
-    var t0 = c.currentTime, dest = comp(c);
+    var t0 = c.currentTime, dest = synthDest(c);
     var osc = c.createOscillator(), g = c.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(500, t0);
@@ -2553,7 +2571,7 @@
   // waves, which is what made the older tones harsh.
   function softNote(freq, dur, vol, partials, delay){
     var c = ctx(); if(!c) return;
-    var t0 = c.currentTime + (delay || 0), dest = comp(c);
+    var t0 = c.currentTime + (delay || 0), dest = synthDest(c);
     partials.forEach(function(pt){
       var osc = c.createOscillator(), g = c.createGain();
       osc.type = 'sine';
@@ -2574,7 +2592,7 @@
   function triangleTone(){ softNote(1568, 1.4, 0.7, [[1,1],[2.7,0.3],[4.1,0.15],[6.3,0.06]]); }
   function bubbleTone(){
     var c = ctx(); if(!c) return;
-    var t0 = c.currentTime, dest = comp(c);
+    var t0 = c.currentTime, dest = synthDest(c);
     var osc = c.createOscillator(), g = c.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(420, t0);
