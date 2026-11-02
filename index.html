@@ -1708,6 +1708,30 @@
     .h-tools{ top: 62px; }
     .cyc .digits{ font-size: min(19vw, 30vh, 170px); }
   }
+
+  /* v58: compact, tidy top area in portrait: one slim icon row + one rounded stats pill */
+  @media (orientation: portrait){
+    header{ position: fixed; top: calc(6px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; width: auto; height: 38px; z-index: 12; }
+    header .brand{ width: 100%; gap: 0; align-items: center; }
+    header .brand .logo{ height: 30px; margin-inline-end: auto; }
+    .header-icon{ width: 38px; height: 38px; }
+    .stage{ padding-top: calc(48px + env(safe-area-inset-top, 0px)); }
+    .setsbar{ width: calc(100% - 24px); max-width: none; height: 52px; margin: 0 auto; padding: 0 10px; gap: 4px; background: rgba(255,255,255,.09); border-radius: 18px; align-items: center; justify-content: space-between; }
+    .setsbar .sb-item{ gap: 1px; }
+    .setsbar .sb-lbl{ font-size: 11px; line-height: 13px; }
+    .sb-stepper button{ width: 26px; height: 26px; font-size: 15px; }
+    .sb-stepper span{ min-width: 30px; font-size: 20px; line-height: 26px; }
+    .sb-count{ font-size: 22px; line-height: 26px; min-width: 30px; }
+    .setsbar .sb-agenda{ width: 30px; height: 30px; background: rgba(255,255,255,.14); }
+    .stage .cycles-scroll{ top: calc(108px + env(safe-area-inset-top, 0px)); }
+  }
+
+  /* v58b: control buttons = bare icons only (no frame, no background), slightly translucent */
+  .stage .controls .btn{ background: transparent !important; border: none !important; box-shadow: none !important; }
+  .stage .controls .btn svg{ opacity: .8; }
+  .stage .controls .btn:disabled{ opacity: .35; }
+  .stage .controls .btn:active:not(:disabled){ background: transparent !important; }
+  .stage .controls .btn:active:not(:disabled) svg{ opacity: 1; transform: scale(.92); }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
