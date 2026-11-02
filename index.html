@@ -1577,6 +1577,12 @@
   .stage .controls .btn{ font-size: 17px; }
   .stage .controls .controls-row.secondary .btn{ font-size: 14px; }
   .sb-status{ font-size: 34px; }
+
+  /* v47: agenda rows have a small x and can be swiped away */
+  .cycles-scroll.agenda .h-tools{ display:flex; top:50%; transform:translateY(-50%); inset-inline-end: 66px; }
+  .cycles-scroll.agenda .h-sound, .cycles-scroll.agenda .h-color{ display:none; }
+  .cycles-scroll.agenda .h-del{ width:36px; height:36px; }
+  .cycles-scroll.agenda .cyc{ touch-action: pan-y; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -3787,10 +3793,54 @@
     el.querySelector('.h-del').addEventListener('click', function(){ deleteInterval(iv.id); });
     // In the agenda (zoomed-out) view, tapping a row zooms back to it.
     card.addEventListener('click', function(e){
-      if(!ivListEl.classList.contains('agenda')) return;
-      if(e.target.closest('.h-drag, .dg, .dg-input')) return;
+      if(!ivListEl.classList.contains('agenda') || card._swiped) return;
+      if(e.target.closest('.h-drag, .h-tools, .dg, .dg-input')) return;
       setAgenda(false, card);
     });
+
+    // Agenda view: swipe a row to the right to throw it away.
+    (function swipe(){
+      var sx = 0, sy = 0, dx = 0, active = false, swiping = false, pid = null;
+      card.addEventListener('pointerdown', function(e){
+        if(!ivListEl.classList.contains('agenda') || stageEl.classList.contains('locked')) return;
+        if(e.target.closest('.h-drag, .h-del, .dg-input')) return;
+        sx = e.clientX; sy = e.clientY; dx = 0; active = true; swiping = false; pid = e.pointerId;
+      });
+      card.addEventListener('pointermove', function(e){
+        if(!active) return;
+        dx = e.clientX - sx;
+        var dy = e.clientY - sy;
+        if(!swiping){
+          if(Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5){
+            swiping = true;
+            try{ card.setPointerCapture(pid); }catch(err){}
+            card.style.transition = 'none';
+          } else return;
+        }
+        var x = Math.max(0, dx);
+        card.style.transform = 'translateX(' + x + 'px)';
+        card.style.opacity = String(Math.max(.25, 1 - x / (card.offsetWidth * 1.1)));
+      });
+      function end(){
+        if(!active) return;
+        active = false;
+        if(!swiping) return;
+        card._swiped = true;
+        setTimeout(function(){ card._swiped = false; }, 350);
+        try{ card.releasePointerCapture(pid); }catch(err){}
+        card.style.transition = 'transform .2s ease, opacity .2s ease';
+        if(dx > card.offsetWidth * 0.3){
+          card.style.transform = 'translateX(' + (card.offsetWidth + 40) + 'px)';
+          card.style.opacity = '0';
+          setTimeout(function(){ deleteInterval(iv.id); }, 200);
+        } else {
+          card.style.transform = '';
+          card.style.opacity = '';
+        }
+      }
+      card.addEventListener('pointerup', end);
+      card.addEventListener('pointercancel', end);
+    })();
 
     // Drag-to-reorder — in the agenda view, by the handle.
     var dragHandle = card.querySelector('.h-drag');
