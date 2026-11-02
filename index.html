@@ -1737,7 +1737,7 @@
     <div class="field-group">
       <div class="library-panel">
         <div class="tm-header">
-          <label class="library-title">מאגר אישי · צלילים ושירים</label>
+          <label class="library-title">הצלילים שלי</label>
           <div class="tm-header-actions">
             <button type="button" class="record-fab" id="recordTrackBtn" aria-label="הקלט צליל או שיר" title="הקלט צליל או שיר">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
@@ -3118,9 +3118,9 @@
       });
       list.appendChild(row);
     }
-    addRow(null, 'ללא צליל');
+    // My own sounds (recordings and uploads) first, then the built-in ones.
+    tracks.forEach(function(t, i){ addRow(t.id, t.name, i === 0 ? 'הצלילים שלי' : null); });
     BUILTIN_SOUNDS.forEach(function(sn, i){ addRow('builtin:' + sn.id, sn.name, (i === 0 || BUILTIN_SOUNDS[i-1].group !== sn.group) ? ('צלילים ' + sn.group) : null, sn); });
-    tracks.forEach(function(t, i){ addRow(t.id, t.name, i === 0 ? 'השירים שהעלית' : null); });
   }
 
   function hasSegment(t){ return t.segStart != null && t.segEnd != null && t.segEnd > t.segStart; }
