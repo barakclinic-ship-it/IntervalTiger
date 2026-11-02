@@ -1478,7 +1478,7 @@
   .half .digits{
     display: flex; align-items: center; justify-content: center; gap: 2px;
     font-family:'Bebas Neue','Inter',sans-serif; font-size: min(24vw, 96px); line-height: 1; color:#fff;
-    font-variant-numeric: tabular-nums; text-shadow: 0 1px 8px rgba(0,0,0,.25);
+    font-variant-numeric: tabular-nums; text-shadow: 0 2px 10px rgba(0,0,0,.35);
   }
   .half .dg{
     background: transparent; border: none; color: inherit; font: inherit; padding: 0 4px; cursor: pointer;
@@ -1732,7 +1732,7 @@
 
   // ---------- data model: presets, each with an arbitrary ordered list of
   // named, colored, independently-soundable intervals ----------
-  var IV_COLOR_ROTATION = ['#ff5c5c','#4f8fce','#35d0a0','#ffc247','#8d72d6','#c968a0','#3f9fa3','#dd9752'];
+  var IV_COLOR_ROTATION = ['#8fc3f0','#f59a9a','#9fe0c4','#fbd78a','#c3adee','#f2aacd','#96d6da','#f1be94'];
   var ivColorSeq = 0;
   function nextIvColor(){ return IV_COLOR_ROTATION[(ivColorSeq++) % IV_COLOR_ROTATION.length]; }
   function uid(prefix){ return (prefix||'iv') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
@@ -1749,7 +1749,7 @@
       once: false,
       // Each block is work + rest. rest 0 = no rest phase.
       restSec: 0,
-      restColor: '#35d0a0',
+      restColor: '#f59a9a',
       restSound: 'builtin:ding'
     }, opts);
   }
@@ -1772,7 +1772,7 @@
       sets: 99,
       setRestSec: 0,
       intervals: [
-        makeInterval({ name:'אינטרוול 1', durationSec:50, color:'#ff5c5c', restSec:10, restColor:'#35d0a0' })
+        makeInterval({ name:'אינטרוול 1', durationSec:50, color:'#8fc3f0', restSec:10, restColor:'#f59a9a' })
       ]
     });
   }
@@ -2162,7 +2162,7 @@
   var VOL_KEY = 'tiger_volume_v1';
   var userVol = 1;
   try{ var sv = parseFloat(localStorage.getItem(VOL_KEY)); if(sv >= 0 && sv <= 1) userVol = sv; }catch(e){}
-  function volGain(){ return 1.2 * userVol * userVol; }
+  function volGain(){ return 1.9 * userVol * userVol; }
   var PITCH_KEY = 'tiger_pitch_v1';
   var soundPitch = {};
   try{ soundPitch = JSON.parse(localStorage.getItem(PITCH_KEY) || '{}') || {}; }catch(e){ soundPitch = {}; }
@@ -2734,7 +2734,6 @@
   }
   function startOrResume(){
     if(ctx() && ctx().state === 'suspended'){ ctx().resume(); }
-    if(!running && !inProgress){ beginReady(); return; }
     startOrResumeCore();
   }
   function startOrResumeCore(){
