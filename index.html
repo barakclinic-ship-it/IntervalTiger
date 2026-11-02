@@ -1749,6 +1749,14 @@
     .stage .controls .btn svg{ width: 30px; height: 30px; }
     .stage .controls #startBtn svg{ width: 36px; height: 36px; }
   }
+
+  /* v61: landscape - title, digits, set status and controls share one center axis */
+  @media (orientation: landscape) and (max-height: 620px){
+    .cyc .half{ padding-inline-start: 54px; padding-inline-end: 10px; }
+    .add-page{ padding-inline: 54px 10px; }
+    .sb-status{ inset: 0 54px 0 10px; }
+    .stage .controls{ left: 10px; right: 54px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
