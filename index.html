@@ -1660,6 +1660,42 @@
   .sb-stepper span{ min-width: 34px; font-size: 22px; }
   .sb-count{ font-family:'Bebas Neue','Inter',sans-serif; font-size: 26px; color:#fff; line-height: 28px; min-width: 34px; text-align:center; }
   .setsbar .sb-agenda{ width: 32px; height: 32px; flex-shrink: 0; }
+
+  /* v56: landscape = 2/3 app + 1/3 clock, no top header (icons in a slim side column) */
+  @media (orientation: landscape) and (max-height: 620px){
+    .clock-panel{ width: 33.333%; }
+    .clock-h, .clock-m{ font-size: min(44vh, 22vw); }
+    .app{ width: 66.667%; }
+    header{ position: fixed; top: 4px; bottom: auto; left: auto; right: calc(33.333% + 2px); width: 44px; z-index: 12; flex-direction: column; background: transparent; padding: 0; margin: 0; }
+    header .brand{ flex-direction: column; gap: 0; }
+    header .brand .logo{ height: 26px; }
+    header .header-actions{ flex-direction: column; gap: 0; }
+    .header-icon{ width: 40px; height: 40px; }
+    .stage{ right: 33.333%; width: 66.667%; padding-top: 6px; padding-inline: 0; }
+    .setsbar{ padding-inline: 52px 12px; min-height: 60px; }
+    .stage .cycles-scroll{ top: 68px; }
+    .cyc .half{ padding-bottom: 150px; padding-inline-end: 44px; }
+    .add-page{ padding-bottom: 150px; }
+    .cycles-scroll.agenda{ padding-bottom: 150px; }
+    .cyc .digits{ font-size: min(19vw, 34vh, 170px); }
+    .cyc-title{ font-size: 28px; }
+    .stage .controls{ right: 54px; left: 10px; }
+  }
+
+  /* v56b: no outlines on the control buttons - soft translucent shapes, bigger icons */
+  .stage .controls .btn{ border: none !important; background: rgba(255,255,255,.18) !important; border-radius: 22px; }
+  .stage .controls .btn:disabled{ opacity:.45; }
+  .stage .controls .btn svg{ width: 40px; height: 40px; }
+  .stage .controls #startBtn svg{ width: 50px; height: 50px; }
+  .stage .controls #startBtn{ min-height: 80px; }
+  .stage .controls .controls-row.secondary .btn{ min-height: 72px; }
+  @media (orientation: landscape) and (max-height: 620px){
+    .stage .controls .btn svg{ width: 28px; height: 28px; }
+    .stage .controls #startBtn svg{ width: 34px; height: 34px; }
+    .stage .controls #startBtn{ min-height: 46px; }
+    .stage .controls .controls-row.secondary .btn{ min-height: 44px; }
+    .stage .controls .btn{ border-radius: 16px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
