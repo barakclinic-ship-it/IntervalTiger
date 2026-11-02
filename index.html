@@ -1936,12 +1936,12 @@
       durationSec: 30,
       reps: 10,
       color: nextIvColor(),
-      soundAssignment: 'builtin:beep', // work sound: null (silent) | 'builtin:<id>' | <trackId number>
+      soundAssignment: 'builtin:beep3', // work sound: null (silent) | 'builtin:<id>' | <trackId number>
       once: false,
       // Each block is work + rest. rest 0 = no rest phase.
       restSec: 0,
       restColor: '#f59a9a',
-      restSound: 'builtin:beep'
+      restSound: 'builtin:beep3'
     }, opts);
   }
   function makePreset(opts){
@@ -2071,8 +2071,8 @@
   (function migrateSoundsV2(p){
     if(p.soundsV2) return;
     p.intervals.forEach(function(iv){
-      if(iv.soundAssignment == null) iv.soundAssignment = 'builtin:beep';
-      if(iv.restSound == null) iv.restSound = 'builtin:beep';
+      if(iv.soundAssignment == null) iv.soundAssignment = 'builtin:beep3';
+      if(iv.restSound == null) iv.restSound = 'builtin:beep3';
     });
     p.soundsV2 = true;
   })(currentPreset);
@@ -2653,7 +2653,7 @@
   function builtinById(id){
     var f = BUILTIN_SOUNDS.filter(function(s){ return s.id === id; })[0];
     if(f) return f;
-    var alias = /bell|gong/.test(String(id)) ? 'gong' : 'beep';
+    var alias = /bell|gong/.test(String(id)) ? 'gong' : 'beep3';
     return BUILTIN_SOUNDS.filter(function(s){ return s.id === alias; })[0];
   }
   // Plays a built-in sound at its saved pitch (used by the phase cue and
