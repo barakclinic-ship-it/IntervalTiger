@@ -1779,6 +1779,13 @@
   .cycles-scroll.agenda .h-tools{ pointer-events:none; }
   .cycles-scroll.agenda .h-tools .h-btn{ pointer-events:auto; }
   .cycles-scroll.agenda .h-drag{ z-index:3; }
+
+  /* v74: sets / units / rest-between-sets share one baseline: label row on top, 34px value row below */
+  .setsbar .sb-item{ height: 50px; justify-content: center; gap: 1px; }
+  .setsbar .sb-lbl{ height: 14px; line-height: 14px; }
+  .setsbar .sb-stepper, .setsbar .sb-count{ height: 34px; }
+  .setsbar .sb-count{ display:flex; align-items:center; justify-content:center; line-height: 34px; }
+  .setsbar{ justify-content: space-evenly; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
