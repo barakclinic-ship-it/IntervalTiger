@@ -1846,6 +1846,23 @@
   .lib-toast{ position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); background:#fff; color:#111; padding:10px 18px; border-radius:20px; font-size:14px; font-weight:600; z-index:70; max-width:88vw; text-align:center; }
   .lib-toast[hidden]{ display:none; }
   @media (orientation: landscape) and (max-height: 620px){ #libBtn{ display:none !important; } }
+
+  /* v83: denser agenda levels (pinch in again) */
+  .cycles-scroll.agenda.ag-d1 .cyc{ height:56px !important; margin-bottom:6px !important; border-radius:14px !important; }
+  .cycles-scroll.agenda.ag-d1 .cyc .digits{ font-size:34px !important; line-height:1 !important; }
+  .cycles-scroll.agenda.ag-d1 .cyc-title{ display:none !important; }
+  .cycles-scroll.agenda.ag-d1 .mid{ justify-content:center !important; height:100% !important; padding-top:0 !important; }
+  .cycles-scroll.agenda.ag-d1 .h-tools{ display:flex !important; gap:6px !important; top:50% !important; transform:translateY(-50%) !important; inset-inline-end:52px !important; }
+  .cycles-scroll.agenda.ag-d1 .h-tools .h-btn, .cycles-scroll.agenda.ag-d1 .h-drag{ width:34px !important; height:34px !important; }
+  .cycles-scroll.agenda.ag-d1 .h-tools .h-btn svg, .cycles-scroll.agenda.ag-d1 .h-drag svg{ width:17px !important; height:17px !important; }
+  .cycles-scroll.agenda.ag-d1 .h-drag{ top:50% !important; inset-inline-end:10px !important; transform:translateY(-50%) !important; }
+  .cycles-scroll.agenda.ag-d2 .cyc{ height:34px !important; margin-bottom:4px !important; border-radius:10px !important; }
+  .cycles-scroll.agenda.ag-d2 .cyc .digits{ font-size:22px !important; line-height:1 !important; }
+  .cycles-scroll.agenda.ag-d2 .cyc-title, .cycles-scroll.agenda.ag-d2 .h-tools{ display:none !important; }
+  .cycles-scroll.agenda.ag-d2 .mid{ justify-content:center !important; height:100% !important; padding-top:0 !important; }
+  .cycles-scroll.agenda.ag-d2 .h-drag{ width:28px !important; height:28px !important; top:50% !important; inset-inline-end:8px !important; transform:translateY(-50%) !important; }
+  .cycles-scroll.agenda.ag-d2 .h-drag svg{ width:15px !important; height:15px !important; }
+  .cycles-scroll.agenda.ag-d1 .add-page, .cycles-scroll.agenda.ag-d2 .add-page{ height:64px !important; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -4338,10 +4355,23 @@
   // Landscape is display-only: no agenda view and no editing there.
   var landMQ = window.matchMedia ? window.matchMedia('(orientation: landscape) and (max-height: 620px)') : null;
   var agBeforeLand = true;
+  // Agenda density: 0 = normal rows, 1 = slimmer, 2 = thinnest (only time + drag handle) so a long workout fits on one screen.
+  var agDensity = 0;
+  function setDensity(n){
+    agDensity = Math.max(0, Math.min(2, n));
+    cyclesScroll.classList.toggle('ag-d1', agDensity === 1);
+    cyclesScroll.classList.toggle('ag-d2', agDensity === 2);
+  }
+  function pinchStep(inward){
+    var on = cyclesScroll.classList.contains('agenda');
+    if(inward){ if(!on) setAgenda(true, null); else setDensity(agDensity + 1); }
+    else if(on){ if(agDensity > 0) setDensity(agDensity - 1); else setAgenda(false, currentVisibleCard()); }
+  }
   function setAgenda(on, focusCard){
     if(on && landMQ && landMQ.matches) return;
     ivListEl.classList.toggle('agenda', on);
     cyclesScroll.classList.toggle('agenda', on);
+    if(!on) setDensity(0);
     document.body.classList.toggle('is-agenda', on);
     var tgt = focusCard;
     if(!tgt){ tgt = on ? null : null; }
@@ -4372,16 +4402,16 @@
     cyclesScroll.addEventListener('touchmove', function(e){
       if(e.touches.length !== 2 || !d0) return;
       var r = dist(e.touches) / d0;
-      var on = cyclesScroll.classList.contains('agenda');
-      if(!on && r < 0.78){ d0 = 0; setAgenda(true, null); }
-      else if(on && r > 1.3){ d0 = 0; setAgenda(false, currentVisibleCard()); }
+      if(landMQ && landMQ.matches) return;
+      if(r < 0.8){ d0 = dist(e.touches); pinchStep(true); }
+      else if(r > 1.25){ d0 = dist(e.touches); pinchStep(false); }
     }, { passive:true });
     cyclesScroll.addEventListener('wheel', function(e){
       if(!e.ctrlKey) return;
       e.preventDefault();
-      var on = cyclesScroll.classList.contains('agenda');
-      if(e.deltaY > 0 && !on) setAgenda(true, null);
-      else if(e.deltaY < 0 && on) setAgenda(false, currentVisibleCard());
+      if(Math.abs(e.deltaY) < 1) return;
+      var now = Date.now(); if(now - (pinch._w || 0) < 250) return; pinch._w = now;
+      pinchStep(e.deltaY > 0);
     }, { passive:false });
   })();
 
