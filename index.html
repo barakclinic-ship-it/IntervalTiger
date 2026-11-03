@@ -2384,7 +2384,7 @@
   var VOL_KEY = 'tiger_volume_v1';
   var userVol = 1;
   try{ var sv = parseFloat(localStorage.getItem(VOL_KEY)); if(sv >= 0 && sv <= 1) userVol = sv; }catch(e){}
-  function volGain(){ return 3.8 * userVol * userVol; }
+  function volGain(){ return 11.4 * userVol * userVol; }
   var PITCH_KEY = 'tiger_pitch_v1';
   var soundPitch = {};
   try{ soundPitch = JSON.parse(localStorage.getItem(PITCH_KEY) || '{}') || {}; }catch(e){ soundPitch = {}; }
@@ -2429,7 +2429,11 @@
         masterCompressor.attack.setValueAtTime(0.003, c.currentTime);
         masterCompressor.release.setValueAtTime(0.1, c.currentTime);
       }catch(e){}
-      masterMakeup.connect(masterCompressor).connect(c.destination);
+      // Soft ceiling after the limiter: catches the overshoot so the extra gain gets loud, not harsh.
+      var ceil = c.createWaveShaper(), cn = 2048, cc = new Float32Array(cn);
+      for(var ci = 0; ci < cn; ci++){ var cx = ci / (cn - 1) * 2 - 1; cc[ci] = Math.tanh(1.5 * cx) / Math.tanh(1.5); }
+      ceil.curve = cc; try{ ceil.oversample = '4x'; }catch(e){}
+      masterMakeup.connect(masterCompressor).connect(ceil).connect(c.destination);
     }
     return masterMakeup;
   }
@@ -2703,11 +2707,20 @@
   var sampleBuffers = {};
   function playSample(key){
     // An <audio> element makes Android/Chrome take audio focus, so music pauses or ducks while the sound plays.
+    // It is also routed through the master gain + limiter so it is as loud as the other sounds.
     var detune = pitchCents || 0;
     try{
       var a = new Audio(SAMPLE_B64[key]);
-      a.volume = Math.max(0, Math.min(1, userVol));
+      a.volume = 1;
       if(detune){ a.preservesPitch = false; a.playbackRate = Math.pow(2, detune / 1200); }
+      var c = ctx();
+      if(c){
+        try{
+          var src = c.createMediaElementSource(a);
+          src.connect(comp(c));
+          a.addEventListener('ended', function(){ try{ src.disconnect(); }catch(e){} });
+        }catch(e){ a.volume = Math.max(0, Math.min(1, userVol)); }
+      }else{ a.volume = Math.max(0, Math.min(1, userVol)); }
       var p = a.play();
       if(p && p.catch){ p.catch(function(){ playSampleWA(key); }); }
       return;
