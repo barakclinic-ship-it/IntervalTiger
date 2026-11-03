@@ -3813,12 +3813,15 @@
     previewAudio.volume = 1;
     previewAudio.src = URL.createObjectURL(blob);
     var seg = hasSegment(t);
-    function go(){
-      try{ previewAudio.currentTime = seg ? t.segStart : 0; }catch(e){}
-      previewStopAt = seg ? t.segEnd : null;
-      previewAudio.play().catch(function(){});
+    previewStopAt = seg ? t.segEnd : null;
+    // play() must happen right inside the tap (phones block it otherwise); the segment start is applied once the file is ready.
+    if(seg){
+      var seekSeg = function(){ try{ previewAudio.currentTime = t.segStart; }catch(e){} };
+      if(previewAudio.readyState >= 1){ seekSeg(); } else { previewAudio.addEventListener('loadedmetadata', seekSeg, { once:true }); }
     }
-    if(previewAudio.readyState >= 1){ go(); } else { previewAudio.addEventListener('loadedmetadata', go, { once:true }); }
+    try{ previewAudio.load(); }catch(e){}
+    var pp = previewAudio.play();
+    if(pp && pp.catch) pp.catch(function(){ previewingId = null; });
   }
   function renderTracksManage(){
     tracksManage.querySelectorAll('.mtrack, .seg-editor').forEach(function(n){ n.remove(); });
