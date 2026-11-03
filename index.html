@@ -1774,6 +1774,11 @@
   .cycles-scroll.agenda .h-tools .h-btn, .cycles-scroll.agenda .h-drag{ width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; }
   .cycles-scroll.agenda .h-tools .h-btn svg, .cycles-scroll.agenda .h-drag svg{ width:20px; height:20px; }
   .cycles-scroll.agenda .h-drag{ inset-inline-end: 12px; top: calc(50% + 24px); transform: translateY(-50%); }
+
+  /* v72: the tools box must not cover the drag handle that sits in its corner */
+  .cycles-scroll.agenda .h-tools{ pointer-events:none; }
+  .cycles-scroll.agenda .h-tools .h-btn{ pointer-events:auto; }
+  .cycles-scroll.agenda .h-drag{ z-index:3; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
