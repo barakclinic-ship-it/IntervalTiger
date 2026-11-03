@@ -1903,6 +1903,10 @@
   .snd-rename{ flex:1; min-width:0; font:inherit; font-size:15px; color:#000; background:#fff; border:2px solid #34d399; border-radius:8px; padding:4px 8px; }
   .sound-pick-top .sound-pick-name{ flex:1; min-width:0; }
   .sound-pick-row.selected .sound-pick-play{ background:rgba(0,0,0,.12); }
+
+  /* v93: delete (x) next to rename for uploaded sounds */
+  .sound-pick-play.snd-del.armed, .tracks-manage .mtrack .del.armed{ width:auto; min-width:34px; padding:0 10px; border-radius:17px; background:#e5484d; color:#fff; font-size:12px; font-weight:700; }
+  .tracks-manage .mtrack .del{ color:var(--text); background:var(--surface-2); }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -3520,6 +3524,34 @@
   }
   // The single sound window: shows every available sound as a row; tapping
   // one assigns it to the card that opened the window and closes it.
+  var X_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  // Two-tap delete: the first tap turns the button red ("בטוח?"), the second one deletes.
+  function armDelete(btn, onConfirm){
+    var armed = false, timer = null;
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(!armed){
+        armed = true; btn.classList.add('armed'); btn.textContent = 'בטוח?';
+        timer = setTimeout(function(){ armed = false; btn.classList.remove('armed'); btn.innerHTML = X_SVG; }, 2500);
+        return;
+      }
+      clearTimeout(timer); onConfirm();
+    });
+  }
+  function deleteTrack(t){
+    idbDelete(t.id).then(function(){
+      // Clear this track from every interval that had it assigned.
+      currentPreset.intervals.forEach(function(iv){
+        if(iv.soundAssignment === t.id) iv.soundAssignment = null;
+      });
+      if(pendingSound === t.id) pendingSound = null;
+      savePresets();
+      if(currentTrackId === t.id) stopMusic();
+      if(openSegmentEditorId === t.id) openSegmentEditorId = null;
+      loadTracksFromDB();
+      renderEditorIntervals();
+    });
+  }
   var PENCIL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>';
   // Inline rename of an uploaded/recorded sound: the name turns into a text box; Enter or tapping away saves.
   function startRename(t, nameEl){
@@ -3601,6 +3633,11 @@
         pen.innerHTML = PENCIL_SVG;
         pen.addEventListener('click', function(e){ e.stopPropagation(); startRename(own, nm); });
         top.insertBefore(pen, play0 || null);
+        var xb = document.createElement('button');
+        xb.type = 'button'; xb.className = 'sound-pick-play snd-del'; xb.setAttribute('aria-label', 'מחק');
+        xb.innerHTML = X_SVG;
+        armDelete(xb, function(){ deleteTrack(own); });
+        top.appendChild(xb);
       }
       list.appendChild(row);
     }
@@ -3774,19 +3811,7 @@
       if(seg) row.querySelector('.seg-badge').textContent = fmtTime(t.segEnd - t.segStart);
       row.querySelector('.renbtn').addEventListener('click', function(){ startRename(t, row.querySelector('.tname')); });
       row.querySelector('.segbtn:not(.renbtn)').addEventListener('click', function(){ toggleSegmentEditor(t.id); });
-      row.querySelector('.del').addEventListener('click', function(){
-        idbDelete(t.id).then(function(){
-          // Clear this track from every interval that had it assigned.
-          currentPreset.intervals.forEach(function(iv){
-            if(iv.soundAssignment === t.id) iv.soundAssignment = null;
-          });
-          savePresets();
-          if(currentTrackId === t.id) stopMusic();
-          if(openSegmentEditorId === t.id) openSegmentEditorId = null;
-          loadTracksFromDB();
-          renderEditorIntervals();
-        });
-      });
+      armDelete(row.querySelector('.del'), function(){ deleteTrack(t); });
       tracksManage.appendChild(row);
       if(openSegmentEditorId === t.id){
         tracksManage.appendChild(buildSegmentEditor(t));
