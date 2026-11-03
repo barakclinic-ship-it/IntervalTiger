@@ -1786,6 +1786,23 @@
   .setsbar .sb-stepper, .setsbar .sb-count{ height: 34px; }
   .setsbar .sb-count{ display:flex; align-items:center; justify-content:center; line-height: 34px; }
   .setsbar{ justify-content: space-evenly; }
+
+  /* v76: wide landscape (>= 640px): logo / rotate / share live on the black clock side. Narrow landscape: no clock split at all. */
+  @media (orientation: landscape) and (max-height: 620px) and (min-width: 640px){
+    header{ right: 6px; z-index: 40; }
+    .clock-panel{ padding-right: 52px; padding-left: 0; z-index: 1; box-sizing: border-box; }
+    .app{ position: relative; z-index: 2; }
+    .cyc .half{ padding-inline-start: 10px; }
+    .sb-status{ inset: 0 10px 0 10px; }
+    .stage .controls{ left: 10px; right: 10px; }
+    .setsbar{ padding-inline: 12px; }
+  }
+  @media (orientation: landscape) and (max-height: 620px) and (max-width: 639px){
+    .clock-panel{ display: none; }
+    .app{ width: 100%; }
+    .stage{ right: 0; width: 100%; }
+    header{ right: 2px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
