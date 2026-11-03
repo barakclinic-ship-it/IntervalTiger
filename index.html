@@ -3803,6 +3803,23 @@
     return wrap;
   }
 
+  // Listen to an uploaded sound (or just its chosen segment) from the sound window; tap again to stop.
+  var previewingId = null;
+  function previewTrackToggle(t){
+    if(previewingId === t.id && !previewAudio.paused){ stopPreview(); previewingId = null; return; }
+    stopPreview();
+    var blob = trackBlobForPlayback(t); if(!blob) return;
+    previewingId = t.id;
+    previewAudio.volume = 1;
+    previewAudio.src = URL.createObjectURL(blob);
+    var seg = hasSegment(t);
+    function go(){
+      try{ previewAudio.currentTime = seg ? t.segStart : 0; }catch(e){}
+      previewStopAt = seg ? t.segEnd : null;
+      previewAudio.play().catch(function(){});
+    }
+    if(previewAudio.readyState >= 1){ go(); } else { previewAudio.addEventListener('loadedmetadata', go, { once:true }); }
+  }
   function renderTracksManage(){
     tracksManage.querySelectorAll('.mtrack, .seg-editor').forEach(function(n){ n.remove(); });
     if(tracks.length === 0){ tracksEmpty.hidden = false; return; }
@@ -3814,12 +3831,14 @@
       row.addEventListener('click', function(){ pendingSound = t.id; renderSoundSelects(); renderTracksManage(); });
       row.innerHTML = '<span class="radio"></span><span class="tname" title="לחצו כדי לשנות שם"></span>' +
         (seg ? '<span class="seg-badge"></span>' : '') +
+        '<button type="button" class="segbtn playbtn" title="השמע"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>' +
         '<button type="button" class="segbtn" title="הגדר מקטע"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8.5 7.5 19 18M19 6 8.5 16.5"/></svg></button>' +
         '<button class="del" title="מחק"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
       row.querySelector('.tname').textContent = t.name;
       if(seg) row.querySelector('.seg-badge').textContent = fmtTime(t.segEnd - t.segStart);
       row.querySelector('.tname').addEventListener('click', function(e){ e.stopPropagation(); startRename(t, row.querySelector('.tname')); });
-      row.querySelector('.segbtn').addEventListener('click', function(e){ e.stopPropagation(); toggleSegmentEditor(t.id); });
+      row.querySelector('.playbtn').addEventListener('click', function(e){ e.stopPropagation(); previewTrackToggle(t); });
+      row.querySelector('.segbtn:not(.playbtn)').addEventListener('click', function(e){ e.stopPropagation(); toggleSegmentEditor(t.id); });
       armDelete(row.querySelector('.del'), function(){ deleteTrack(t); });
       tracksManage.appendChild(row);
       if(openSegmentEditorId === t.id){
@@ -4612,7 +4631,7 @@
     renderSoundSelects();
     soundLibraryOverlay.hidden = false;
   }
-  function closeSoundLibrary(){ soundLibraryOverlay.hidden = true; }
+  function closeSoundLibrary(){ stopPreview(); soundLibraryOverlay.hidden = true; }
   closeSoundLibraryBtn.addEventListener('click', closeSoundLibrary);
   document.getElementById('sndCancelBtn').addEventListener('click', closeSoundLibrary);
   document.getElementById('sndOkBtn').addEventListener('click', function(){
