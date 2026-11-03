@@ -1803,6 +1803,19 @@
     .stage{ right: 0; width: 100%; }
     header{ right: 2px; }
   }
+
+  /* v77: wide landscape - every icon in ONE column on the right of the clock; the page keeps only the timer, bigger */
+  .col-tools{ display:none; }
+  @media (orientation: landscape) and (max-height: 620px) and (min-width: 640px){
+    .setsbar .sb-agenda{ position: fixed; right: 6px; top: 114px; width: 40px; height: 40px; background: transparent; z-index: 41; }
+    .col-tools{ display:flex; flex-direction:column; position:fixed; right:6px; top:158px; width:40px; gap:0; z-index:41; }
+    .col-tool{ width:40px; height:40px; padding:0; border:none; background:transparent; color:#fff; opacity:.85; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    body.is-agenda .col-tools, body.is-locked .col-tools{ display:none; }
+    .cycles-scroll:not(.agenda) .h-tools{ display:none; }
+    .cycles-scroll:not(.agenda) .cyc .digits{ font-size: min(38vh, 28vw, 220px); }
+    .cycles-scroll:not(.agenda) .cyc-title{ font-size: 30px; }
+    .cycles-scroll:not(.agenda) .cyc .half{ padding-inline: 10px; padding-top: 52px; padding-bottom: 84px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -1822,6 +1835,11 @@
       </button>
     </div>
   </header>
+  <div class="col-tools" id="colTools">
+    <button type="button" class="col-tool" data-act="color" aria-label="צבע" title="צבע"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2-.6-1.2.2-2.5 1.6-2.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/></svg></button>
+    <button type="button" class="col-tool" data-act="sound" aria-label="צליל" title="צליל"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
+    <button type="button" class="col-tool" data-act="del" aria-label="מחק" title="מחק"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
 
   <div class="stage" id="stageEl">
     <div class="setsbar" id="setsBar">
@@ -4289,6 +4307,7 @@
   function setAgenda(on, focusCard){
     ivListEl.classList.toggle('agenda', on);
     cyclesScroll.classList.toggle('agenda', on);
+    document.body.classList.toggle('is-agenda', on);
     var tgt = focusCard;
     if(!tgt){ tgt = on ? null : null; }
     if(tgt){ setTimeout(function(){ try{ tgt.scrollIntoView({ block:'start' }); }catch(e){} }, 30); }
@@ -4320,6 +4339,21 @@
       if(e.deltaY > 0 && !on) setAgenda(true, null);
       else if(e.deltaY < 0 && on) setAgenda(false, currentVisibleCard());
     }, { passive:false });
+  })();
+
+  // Wide landscape: the per-timer tools (color / sound / delete) live in the right-hand column and act on the timer on screen.
+  (function colTools(){
+    var wrap = document.getElementById('colTools'); if(!wrap) return;
+    var sel = { color:'.h-color', sound:'.h-sound', del:'.h-del' };
+    wrap.addEventListener('click', function(e){
+      var b = e.target.closest('.col-tool'); if(!b) return;
+      if(stageEl.classList.contains('locked')) return;
+      var card = currentVisibleCard(); if(!card) return;
+      var t = card.querySelector(sel[b.getAttribute('data-act')]); if(t) t.click();
+    });
+    function sync(){ document.body.classList.toggle('is-locked', stageEl.classList.contains('locked')); }
+    try{ new MutationObserver(sync).observe(stageEl, { attributes:true, attributeFilter:['class'] }); }catch(e){}
+    sync();
   })();
 
   function renderEditorIntervals(){
