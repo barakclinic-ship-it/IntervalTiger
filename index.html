@@ -4381,9 +4381,8 @@
   // Agenda density: 0 = normal rows, 1 = slimmer, 2 = thinnest (only time + drag handle) so a long workout fits on one screen.
   var agDensity = 0;
   function setDensity(n){
-    agDensity = Math.max(0, Math.min(2, n));
-    cyclesScroll.classList.toggle('ag-d1', agDensity === 1);
-    cyclesScroll.classList.toggle('ag-d2', agDensity === 2);
+    agDensity = Math.max(0, Math.min(1, n));
+    cyclesScroll.classList.toggle('ag-d2', agDensity === 1);
   }
   function pinchStep(inward){
     var on = cyclesScroll.classList.contains('agenda');
