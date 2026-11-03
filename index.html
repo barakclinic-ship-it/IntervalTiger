@@ -4527,39 +4527,62 @@
   function b64dec(s){ s = s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length % 4) s += '='; return decodeURIComponent(escape(atob(s))); }
   // Compact, device-independent form of a workout (custom recordings can't travel, so they fall back to the default beep).
   function packWorkout(w, name){
-    function snd(s){ return (s === null || (typeof s === 'string' && s.indexOf('builtin:') === 0)) ? s : 'builtin:beep3'; }
-    return { v:1, n:name || w.name, s:w.sets, r:w.setRestSec || 0, i:(w.intervals || []).map(function(iv){
-      return [iv.name, iv.type || 'time', iv.durationSec, iv.reps || 0, iv.color, snd(iv.soundAssignment), iv.restSec || 0, iv.restColor || '#f59a9a', snd(iv.restSound), iv.once ? 1 : 0];
-    }) };
+    function snd(s){ if(s === null) return ''; return (typeof s === 'string' && s.indexOf('builtin:') === 0) ? s.slice(8) : 'beep3'; }
+    function hex(c){ return String(c || '').replace('#',''); }
+    return [2, name || w.name, w.sets, w.setRestSec || 0, (w.intervals || []).map(function(iv){
+      return [iv.name, iv.type === 'reps' ? 1 : 0, iv.durationSec, iv.reps || 0, hex(iv.color), snd(iv.soundAssignment), iv.restSec || 0, hex(iv.restColor || 'f59a9a'), snd(iv.restSound), iv.once ? 1 : 0];
+    })];
   }
   function unpackWorkout(p){
-    if(!p || p.v !== 1 || !Array.isArray(p.i) || !p.i.length || p.i.length > 60) throw new Error('bad');
+    var rows;
+    if(Array.isArray(p) && p[0] === 2){ rows = p[4]; p = { n:p[1], s:p[2], r:p[3] }; }
+    else if(p && p.v === 1 && Array.isArray(p.i)){ rows = p.i.map(function(a){ return [a[0], a[1] === 'reps' ? 1 : 0, a[2], a[3], a[4], (a[5] === null ? '' : String(a[5]).replace('builtin:','')), a[6], a[7], (a[8] === null ? '' : String(a[8]).replace('builtin:','')), a[9]]; }); }
+    else throw new Error('bad');
+    if(!Array.isArray(rows) || !rows.length || rows.length > 60) throw new Error('bad');
     function num(x, d){ x = Number(x); return isFinite(x) ? x : d; }
-    function col(x, d){ return (typeof x === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(x)) ? x : d; }
+    function col(x, d){ x = String(x || '').replace('#',''); return /^[0-9a-fA-F]{3,8}$/.test(x) ? '#' + x : d; }
+    var ids = ['beep','beep2','beep3','gong','gong2','gong3'];
+    function snd(s){ s = String(s == null ? '' : s); return s === '' ? null : (ids.indexOf(s) >= 0 ? 'builtin:' + s : 'builtin:beep3'); }
     return makePreset({
       name: String(p.n || 'אימון').slice(0, 40),
       sets: Math.max(1, Math.min(99, Math.round(num(p.s, 1)))),
       setRestSec: Math.max(0, Math.min(600, Math.round(num(p.r, 0)))),
-      intervals: p.i.map(function(a){
+      intervals: rows.map(function(a){
         return makeInterval({
-          name: String(a[0] || 'TIGER').slice(0, 40), type: a[1] === 'reps' ? 'reps' : 'time',
+          name: String(a[0] || 'TIGER').slice(0, 40), type: a[1] ? 'reps' : 'time',
           durationSec: Math.max(1, Math.min(5999, Math.round(num(a[2], 30)))), reps: Math.max(0, Math.round(num(a[3], 0))),
-          color: col(a[4], '#8fc3f0'), soundAssignment: (a[5] === null || (typeof a[5] === 'string' && a[5].indexOf('builtin:') === 0)) ? a[5] : 'builtin:beep3',
+          color: col(a[4], '#8fc3f0'), soundAssignment: snd(a[5]),
           restSec: Math.max(0, Math.min(5999, Math.round(num(a[6], 0)))), restColor: col(a[7], '#f59a9a'),
-          restSound: (a[8] === null || (typeof a[8] === 'string' && a[8].indexOf('builtin:') === 0)) ? a[8] : 'builtin:beep3', once: !!a[9]
+          restSound: snd(a[8]), once: !!a[9]
         });
       })
     });
   }
+  function bytesToB64u(u8){ var s = ''; for(var i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  function b64uToBytes(s){ s = s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length % 4) s += '='; var b = atob(s), u = new Uint8Array(b.length); for(var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function streamBytes(stream, bytes){
+    var w = stream.writable.getWriter(); w.write(bytes); w.close();
+    return new Response(stream.readable).arrayBuffer().then(function(b){ return new Uint8Array(b); });
+  }
+  // Short link: compact array -> JSON -> deflate -> base64url (#z=). Falls back to plain base64 (#w=) if compression is unavailable.
   function workoutLink(w, name){
-    return location.origin + location.pathname + '#w=' + b64enc(JSON.stringify(packWorkout(w, name)));
+    var json = JSON.stringify(packWorkout(w, name)), base = location.origin + location.pathname;
+    if(typeof CompressionStream === 'undefined') return Promise.resolve(base + '#w=' + b64enc(json));
+    return streamBytes(new CompressionStream('deflate-raw'), new TextEncoder().encode(json)).then(function(u){ return base + '#z=' + bytesToB64u(u); });
+  }
+  function decodeHash(){
+    var m = /[#&]([zw])=([A-Za-z0-9_-]+)/.exec(location.hash || ''); if(!m) return null;
+    if(m[1] === 'w') return Promise.resolve(JSON.parse(b64dec(m[2])));
+    if(typeof DecompressionStream === 'undefined') return Promise.reject(new Error('nodecomp'));
+    return streamBytes(new DecompressionStream('deflate-raw'), b64uToBytes(m[2])).then(function(u){ return JSON.parse(new TextDecoder().decode(u)); });
   }
   function shareWorkout(w, name){
-    var url = workoutLink(w, name);
-    var data = { title: 'TIGER – ' + name, text: 'אימון "' + name + '" ב‑TIGER. פתחו את הקישור כדי לטעון אותו באפליקציה:', url: url };
-    if(navigator.share){ navigator.share(data).catch(function(){}); }
-    else if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ libToast('הקישור לאימון הועתק'); }).catch(function(){ libToast('לא הצלחתי להעתיק'); }); }
-    else{ window.prompt('העתיקו את הקישור:', url); }
+    workoutLink(w, name).then(function(url){
+      var data = { title: 'TIGER – ' + name, text: 'אימון "' + name + '" ב‑TIGER. פתחו את הקישור כדי לטעון אותו באפליקציה:', url: url };
+      if(navigator.share){ navigator.share(data).catch(function(){}); }
+      else if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ libToast('הקישור לאימון הועתק'); }).catch(function(){ libToast('לא הצלחתי להעתיק'); }); }
+      else{ window.prompt('העתיקו את הקישור:', url); }
+    });
   }
   function applyWorkout(w){
     // Writes the workout as the current one and reloads, so every screen starts from a clean state.
@@ -4616,19 +4639,23 @@
   libOverlay.addEventListener('click', function(e){ if(e.target === libOverlay) closeLib(); });
   // Opening a shared link (#w=...): offer to keep and load the workout.
   (function receiveShared(){
-    var m = /[#&]w=([A-Za-z0-9_-]+)/.exec(location.hash || ''); if(!m) return;
-    var w; try{ w = unpackWorkout(JSON.parse(b64dec(m[1]))); }catch(e){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(_){} libToast('הקישור לאימון לא תקין'); return; }
-    libTitleEl.textContent = 'קיבלתם אימון'; libBody.innerHTML = '';
-    libBody.appendChild(mk('div', 'lib-name big', w.name)); libBody.appendChild(mk('div', 'lib-meta', wSummary(w)));
-    var acts = mk('div', 'lib-save');
-    var ok = mk('button', 'lib-btn primary', 'שמור וטען'); ok.type = 'button';
-    var no = mk('button', 'lib-btn', 'ביטול'); no.type = 'button';
-    ok.addEventListener('click', function(){
-      var lib = libLoad().filter(function(x){ return x.name !== w.name; });
-      lib.unshift({ id: uid('lib'), name: w.name, savedAt: Date.now(), workout: w }); libStore(lib); applyWorkout(w);
-    });
-    no.addEventListener('click', function(){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} closeLib(); });
-    acts.appendChild(ok); acts.appendChild(no); libBody.appendChild(acts); libOverlay.hidden = false;
+    if(!/[#&][zw]=/.test(location.hash || '')) return;
+    function bad(){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(_){} libToast('הקישור לאימון לא תקין'); }
+    var p; try{ p = decodeHash(); }catch(e){ bad(); return; }
+    p.then(function(raw){
+      var w = unpackWorkout(raw);
+      libTitleEl.textContent = 'קיבלתם אימון'; libBody.innerHTML = '';
+      libBody.appendChild(mk('div', 'lib-name big', w.name)); libBody.appendChild(mk('div', 'lib-meta', wSummary(w)));
+      var acts = mk('div', 'lib-save');
+      var ok = mk('button', 'lib-btn primary', 'שמור וטען'); ok.type = 'button';
+      var no = mk('button', 'lib-btn', 'ביטול'); no.type = 'button';
+      ok.addEventListener('click', function(){
+        var lib = libLoad().filter(function(x){ return x.name !== w.name; });
+        lib.unshift({ id: uid('lib'), name: w.name, savedAt: Date.now(), workout: w }); libStore(lib); applyWorkout(w);
+      });
+      no.addEventListener('click', function(){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} closeLib(); });
+      acts.appendChild(ok); acts.appendChild(no); libBody.appendChild(acts); libOverlay.hidden = false;
+    }).catch(bad);
   })();
 
   // ---------- install to home screen ----------
