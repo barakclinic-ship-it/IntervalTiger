@@ -1816,6 +1816,13 @@
     .cycles-scroll:not(.agenda) .cyc-title{ font-size: 30px; }
     .cycles-scroll:not(.agenda) .cyc .half{ padding-inline: 10px; padding-top: 70px; padding-bottom: 74px; }
   }
+
+  /* v80: landscape is display-only - nothing for editing (no agenda, no +/-, no tools, no add) */
+  @media (orientation: landscape) and (max-height: 620px){
+    .setsbar .sb-agenda, .col-tools, .col-tool, .add-page, .h-tools, .h-drag{ display: none !important; }
+    .setsbar .sb-stepper button{ display: none; }
+    .setsbar .sb-stepper span, .cyc .digits, .cyc .dg, .cyc-title, .title-input{ pointer-events: none; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -4304,7 +4311,11 @@
   // Zoomed-out agenda view: every timer as a compact row. Pinch in to get
   // there, pinch out (or tap a row) to go back to full screens.
   var cyclesScroll = document.getElementById('cyclesScroll');
+  // Landscape is display-only: no agenda view and no editing there.
+  var landMQ = window.matchMedia ? window.matchMedia('(orientation: landscape) and (max-height: 620px)') : null;
+  var agBeforeLand = true;
   function setAgenda(on, focusCard){
+    if(on && landMQ && landMQ.matches) return;
     ivListEl.classList.toggle('agenda', on);
     cyclesScroll.classList.toggle('agenda', on);
     document.body.classList.toggle('is-agenda', on);
@@ -4313,6 +4324,15 @@
     if(tgt){ setTimeout(function(){ try{ tgt.scrollIntoView({ block:'start' }); }catch(e){} }, 30); }
   }
   setAgenda(true, null);
+  if(landMQ){
+    var onLand = function(){
+      if(landMQ.matches){
+        agBeforeLand = cyclesScroll.classList.contains('agenda');
+        if(agBeforeLand) setAgenda(false, currentVisibleCard());
+      }else if(agBeforeLand){ setAgenda(true, null); }
+    };
+    if(landMQ.addEventListener) landMQ.addEventListener('change', onLand); else if(landMQ.addListener) landMQ.addListener(onLand);
+  }
   document.getElementById('agendaBtn').addEventListener('click', function(){
     setAgenda(!cyclesScroll.classList.contains('agenda'), currentVisibleCard());
   });
