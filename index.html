@@ -1757,6 +1757,17 @@
     .sb-status{ inset: 0 54px 0 10px; }
     .stage .controls{ left: 10px; right: 54px; }
   }
+
+  /* v70: the app opens in the agenda view, and every row has everything the big page has (color, sound, delete) */
+  .cycles-scroll.agenda .h-sound, .cycles-scroll.agenda .h-color{ display:flex; }
+  .cycles-scroll.agenda .h-tools{ display:grid; grid-template-columns: repeat(2, 36px); gap:6px; inset-inline-end: 56px; }
+  .cycles-scroll.agenda .h-tools .h-btn{ width:36px; height:36px; }
+  .cycles-scroll.agenda .h-tools .h-btn svg{ width:18px; height:18px; }
+  @media (orientation: landscape) and (max-height: 620px){
+    .cycles-scroll.agenda .cyc .half{ padding-top:0 !important; padding-bottom:0 !important; align-items:center; justify-content:center; }
+    .cycles-scroll.agenda .mid{ justify-content:center; height:100%; }
+    .cycles-scroll.agenda .cyc .digits{ line-height:1; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -4234,6 +4245,7 @@
     if(!tgt){ tgt = on ? null : null; }
     if(tgt){ setTimeout(function(){ try{ tgt.scrollIntoView({ block:'start' }); }catch(e){} }, 30); }
   }
+  setAgenda(true, null);
   document.getElementById('agendaBtn').addEventListener('click', function(){
     setAgenda(!cyclesScroll.classList.contains('agenda'), currentVisibleCard());
   });
