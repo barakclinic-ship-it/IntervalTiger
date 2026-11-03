@@ -1768,6 +1768,12 @@
     .cycles-scroll.agenda .mid{ justify-content:center; height:100%; }
     .cycles-scroll.agenda .cyc .digits{ line-height:1; }
   }
+
+  /* v71: the four row buttons are one symmetric 2x2 block, all the same size */
+  .cycles-scroll.agenda .h-tools{ grid-template-columns: repeat(2, 40px); gap:8px; inset-inline-end: 12px; top:50%; transform:translateY(-50%); }
+  .cycles-scroll.agenda .h-tools .h-btn, .cycles-scroll.agenda .h-drag{ width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center; }
+  .cycles-scroll.agenda .h-tools .h-btn svg, .cycles-scroll.agenda .h-drag svg{ width:20px; height:20px; }
+  .cycles-scroll.agenda .h-drag{ inset-inline-end: 12px; top: calc(50% + 24px); transform: translateY(-50%); }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
