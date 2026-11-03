@@ -4244,13 +4244,6 @@
     });
     el.querySelector('.h-sound').addEventListener('click', function(){ openSoundLibrary(iv); });
     el.querySelector('.h-del').addEventListener('click', function(){ deleteInterval(iv.id); });
-    // In the agenda (zoomed-out) view, tapping a row zooms back to it.
-    card.addEventListener('click', function(e){
-      if(!ivListEl.classList.contains('agenda') || card._swiped) return;
-      if(e.target.closest('.h-drag, .h-tools, .dg, .dg-input, .cyc-title, .title-input')) return;
-      setAgenda(false, card);
-    });
-
     // Agenda view: swipe a row to the right to throw it away.
     (function swipe(){
       var sx = 0, sy = 0, dx = 0, active = false, swiping = false, pid = null;
