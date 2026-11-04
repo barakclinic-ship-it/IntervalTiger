@@ -1917,6 +1917,13 @@
   .tracks-manage .mtrack .radio{ width:20px; height:20px; border-radius:50%; border:2px solid var(--text-dim); flex-shrink:0; box-sizing:border-box; }
   .tracks-manage .mtrack.selected .radio{ border-color:#000; background:radial-gradient(#000 0 45%, transparent 50%); }
   .tracks-manage .mtrack .tname{ text-decoration:underline dotted; text-underline-offset:4px; font-size:15px; }
+
+  /* v98: total workout time under the sets bar */
+  @media (orientation: portrait){ .sb-total{ position:absolute; top:calc(104px + env(safe-area-inset-top, 0px)); left:0; right:0; margin:0; height:24px; align-items:center; z-index:2; pointer-events:none; } .stage .cycles-scroll{ top: calc(132px + env(safe-area-inset-top, 0px)); } }
+  .sb-total{ display:flex; align-items:baseline; justify-content:center; gap:8px; margin:2px 0 4px; font-size:13px; color:rgba(255,255,255,.6); flex-shrink:0; }
+  .sb-total b{ font-family:'Bebas Neue','Inter',sans-serif; font-size:22px; font-weight:400; color:#fff; letter-spacing:1px; font-variant-numeric:tabular-nums; }
+  .setsbar.running + .sb-total{ display:none; }
+  @media (orientation: landscape) and (max-height: 620px){ .sb-total{ display:none !important; } }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -1953,6 +1960,7 @@
       <button type="button" class="sb-agenda" id="agendaBtn" aria-label="תצוגת אג'נדה" title="אג'נדה"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <div class="sb-status" id="sbStatus" hidden><span id="sbText"></span><span id="sbTime"></span></div>
     </div>
+    <div class="sb-total" id="sbTotal"><span>זמן האימון הכולל</span><b id="sbTotalVal">00:00</b></div>
     <div class="cycles-scroll" id="cyclesScroll">
       <div class="iv-list" id="ivList"></div>
       <div class="add-page"><button type="button" class="add-circle" id="addIvBtn" aria-label="הוסף טיימר"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
@@ -2273,7 +2281,21 @@
     // old generic names become the default title
     out.forEach(function(iv){ if(!iv.name || /^(אינטרוול|טיימר|עבודה|מנוחה)( \d+)?$/.test(iv.name)) iv.name = 'TIGER'; });
   })(currentPreset);
-  function savePresets(){ try{ localStorage.setItem(WORKOUT_KEY, JSON.stringify(currentPreset)); }catch(e){} }
+  // Total length of the whole workout: every timer + its rest, repeated for each set, plus the rest between sets.
+  function updateTotal(){
+    var el = document.getElementById('sbTotalVal'); if(!el || !currentPreset) return;
+    var per = 0, reps = false;
+    currentPreset.intervals.forEach(function(iv){
+      if(iv.type === 'reps') reps = true; else per += (iv.durationSec || 0);
+      per += (iv.restSec || 0);
+    });
+    var sets = Math.max(1, currentPreset.sets || 1);
+    var sec = per * sets + (sets > 1 ? (currentPreset.setRestSec || 0) * (sets - 1) : 0);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    function p2(n){ return (n < 10 ? '0' : '') + n; }
+    el.textContent = (h ? h + ':' + p2(m) : p2(m)) + ':' + p2(s) + (reps ? ' + חזרות' : '');
+  }
+  function savePresets(){ try{ localStorage.setItem(WORKOUT_KEY, JSON.stringify(currentPreset)); }catch(e){} try{ updateTotal(); }catch(e){} }
   savePresets();
 
   function quickstartPreset(name){
