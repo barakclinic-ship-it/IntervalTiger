@@ -1927,12 +1927,10 @@
 
   /* v99: duplicate button - the row buttons become a "five" (dice) pattern: sound in the middle, the rest around it */
   .h-dup{ display:none; }
-  .cycles-scroll.agenda{ --s:32px; }
-  @media (max-height: 760px){ .cycles-scroll.agenda{ --s:26px; } }
-  @media (max-height: 600px){ .cycles-scroll.agenda{ --s:20px; } }
+  .cycles-scroll.agenda{ --s:38px; }
   .cycles-scroll.agenda:not(.ag-d2) .h-tools{ display:contents !important; }
-  .cycles-scroll.agenda:not(.ag-d2) .h-btn{ display:flex !important; position:absolute !important; width:var(--s) !important; height:var(--s) !important; padding:0 !important; transform:none !important; pointer-events:auto; z-index:3; --st: calc(var(--s) + 4px); }
-  .cycles-scroll.agenda:not(.ag-d2) .h-btn svg{ width:calc(var(--s) * .55) !important; height:calc(var(--s) * .55) !important; }
+  .cycles-scroll.agenda:not(.ag-d2) .h-btn{ display:flex !important; position:absolute !important; width:var(--s) !important; height:var(--s) !important; padding:0 !important; transform:none !important; pointer-events:auto; z-index:3; --st: calc(var(--s) + 2px); }
+  .cycles-scroll.agenda:not(.ag-d2) .h-btn svg{ width:calc(var(--s) * .62) !important; height:calc(var(--s) * .62) !important; }
   .cycles-scroll.agenda:not(.ag-d2) .h-color{ top:calc(50% - var(--st) - var(--s) / 2) !important; inset-inline-end:calc(10px + 2 * var(--st)) !important; }
   .cycles-scroll.agenda:not(.ag-d2) .h-del{ top:calc(50% - var(--st) - var(--s) / 2) !important; inset-inline-end:10px !important; }
   .cycles-scroll.agenda:not(.ag-d2) .h-sound{ top:calc(50% - var(--s) / 2) !important; inset-inline-end:calc(10px + var(--st)) !important; }
