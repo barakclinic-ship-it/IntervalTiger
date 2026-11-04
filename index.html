@@ -1924,6 +1924,24 @@
   .sb-total b{ font-family:'Bebas Neue','Inter',sans-serif; font-size:22px; font-weight:400; color:#fff; letter-spacing:1px; font-variant-numeric:tabular-nums; }
   .setsbar.running + .sb-total{ display:none; }
   @media (orientation: landscape) and (max-height: 620px){ .sb-total{ display:none !important; } }
+
+  /* v99: duplicate button - the row buttons become a "five" (dice) pattern: sound in the middle, the rest around it */
+  .h-dup{ display:none; }
+  .cycles-scroll.agenda{ --s:32px; }
+  @media (max-height: 760px){ .cycles-scroll.agenda{ --s:26px; } }
+  @media (max-height: 600px){ .cycles-scroll.agenda{ --s:20px; } }
+  .cycles-scroll.agenda:not(.ag-d2) .h-tools{ display:contents !important; }
+  .cycles-scroll.agenda:not(.ag-d2) .h-btn{ display:flex !important; position:absolute !important; width:var(--s) !important; height:var(--s) !important; padding:0 !important; transform:none !important; pointer-events:auto; z-index:3; --st: calc(var(--s) + 4px); }
+  .cycles-scroll.agenda:not(.ag-d2) .h-btn svg{ width:calc(var(--s) * .55) !important; height:calc(var(--s) * .55) !important; }
+  .cycles-scroll.agenda:not(.ag-d2) .h-color{ top:calc(50% - var(--st) - var(--s) / 2) !important; inset-inline-end:calc(10px + 2 * var(--st)) !important; }
+  .cycles-scroll.agenda:not(.ag-d2) .h-del{ top:calc(50% - var(--st) - var(--s) / 2) !important; inset-inline-end:10px !important; }
+  .cycles-scroll.agenda:not(.ag-d2) .h-sound{ top:calc(50% - var(--s) / 2) !important; inset-inline-end:calc(10px + var(--st)) !important; }
+  .cycles-scroll.agenda:not(.ag-d2) .h-dup{ top:calc(50% + var(--st) - var(--s) / 2) !important; inset-inline-end:calc(10px + 2 * var(--st)) !important; }
+  .cycles-scroll.agenda:not(.ag-d2) .h-drag{ top:calc(50% + var(--st) - var(--s) / 2) !important; inset-inline-end:10px !important; }
+  .cycles-scroll.agenda.ag-d2 .h-dup{ display:flex !important; }
+  .cycles-scroll.agenda.ag-d2 .mid{ padding-inline-end:160px !important; }
+  .stage.locked .cycles-scroll.agenda .h-dup{ display:none !important; }
+  @media (orientation: landscape) and (max-height: 620px){ .h-dup{ display:none !important; } }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap">
@@ -4376,6 +4394,7 @@
       '<div class="h-tools">' +
         '<button type="button" class="h-btn h-sound" aria-label="צליל" title="צליל"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>' +
         '<button type="button" class="h-btn h-color" aria-label="צבע" title="צבע"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2-.6-1.2.2-2.5 1.6-2.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="8" r="1"/></svg></button>' +
+        '<button type="button" class="h-btn h-dup" aria-label="שכפל" title="שכפל"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>' +
         '<button type="button" class="h-btn h-del" aria-label="מחק" title="מחק"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</div><div class="prog"></div>';
     var h = { el: el, mm: el.querySelector('.mm'), ss: el.querySelector('.ss'), prog: el.querySelector('.prog') };
@@ -4442,6 +4461,19 @@
     });
     el.querySelector('.h-sound').addEventListener('click', function(){ openSoundLibrary(iv); });
     el.querySelector('.h-del').addEventListener('click', function(){ deleteInterval(iv.id); });
+    // Duplicate: an exact copy of this timer (same time, color, sounds, title), placed right after it.
+    el.querySelector('.h-dup').addEventListener('click', function(){
+      if(stageEl.classList.contains('locked')) return;
+      var ivs = currentPreset.intervals, i = ivs.indexOf(iv);
+      if(i < 0) return;
+      var copy = JSON.parse(JSON.stringify(iv));
+      copy.id = uid('iv');
+      ivs.splice(i + 1, 0, copy);
+      savePresets();
+      renderEditorIntervals();
+      var cards = ivListEl.querySelectorAll('.cyc');
+      if(cards[i + 1]){ try{ cards[i + 1].scrollIntoView({ block:'nearest', behavior:'smooth' }); }catch(e){} }
+    });
     // Agenda view: swipe a row to the right to throw it away.
     (function swipe(){
       var sx = 0, sy = 0, dx = 0, active = false, swiping = false, pid = null;
