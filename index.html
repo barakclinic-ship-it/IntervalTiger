@@ -2618,7 +2618,7 @@
     var m = comp(c);
     if(!synthBus){
       synthBus = c.createGain();
-      synthBus.gain.value = 1.8;
+      synthBus.gain.value = 5.4; // v102: built-in ring sounds x3
       var ws = c.createWaveShaper();
       var n = 2048, curve = new Float32Array(n);
       for(var i = 0; i < n; i++){ var x = i * 2 / (n - 1) - 1; curve[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); }
