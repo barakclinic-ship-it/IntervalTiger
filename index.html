@@ -2558,7 +2558,7 @@
   var VOL_KEY = 'tiger_volume_v1';
   var userVol = 1;
   try{ var sv = parseFloat(localStorage.getItem(VOL_KEY)); if(sv >= 0 && sv <= 1) userVol = sv; }catch(e){}
-  function volGain(){ return 11.4 * userVol * userVol; }
+  function volGain(){ return 34.2 * userVol * userVol; } // v103: all alert sounds x3 (was 11.4)
   var PITCH_KEY = 'tiger_pitch_v1';
   var soundPitch = {};
   try{ soundPitch = JSON.parse(localStorage.getItem(PITCH_KEY) || '{}') || {}; }catch(e){ soundPitch = {}; }
