@@ -4547,7 +4547,7 @@
   var cyclesScroll = document.getElementById('cyclesScroll');
   // Landscape is display-only: no agenda view and no editing there.
   var landMQ = window.matchMedia ? window.matchMedia('(orientation: landscape) and (max-height: 620px)') : null;
-  var agBeforeLand = true;
+  var agBeforeLand = false;
   // Agenda density: 0 = normal rows, 1 = slimmer, 2 = thinnest (only time + drag handle) so a long workout fits on one screen.
   var agDensity = 0;
   function setDensity(n){
@@ -4583,7 +4583,9 @@
     if(!tgt){ tgt = on ? null : null; }
     if(tgt){ setTimeout(function(){ try{ tgt.scrollIntoView({ block:'start' }); }catch(e){} }, 30); }
   }
-  setAgenda(true, null);
+  // v106: the half-and-half view is the default start view
+  setAgenda(false, null);
+  setSplit(true);
   if(landMQ){
     var onLand = function(){
       if(landMQ.matches){
