@@ -1927,7 +1927,7 @@
 
   /* v104: half-and-half zoom - two timers (work + rest) share the screen */
   @media (orientation: portrait){
-    .cycles-scroll.split:not(.agenda){ bottom:112px !important; }
+    .cycles-scroll.split:not(.agenda){ bottom:var(--split-bottom, 112px) !important; }
     .cycles-scroll.split:not(.agenda) .cyc{ height:50% !important; }
     .cycles-scroll.split:not(.agenda) .cyc .half{ padding-bottom:0 !important; }
     .cycles-scroll.split:not(.agenda) .cyc .digits{ font-size:min(34vw, 27vh, 165px) !important; }
@@ -4558,7 +4558,26 @@
   function setSplit(on){
     cyclesScroll.classList.toggle('split', on);
     document.body.classList.toggle('is-split', on);
+    fitSplit();
   }
+  // v107: the half-and-half area ends exactly where the play controls (and the volume bar, when shown) begin.
+  function fitSplit(){
+    try{
+      var c = document.querySelector('.stage .controls');
+      if(!c) return;
+      var r = c.getBoundingClientRect();
+      if(r.height < 10) return;
+      var gap = Math.max(4, Math.round(window.innerHeight - r.top) + 4);
+      if(cyclesScroll.style.getPropertyValue('--split-bottom') === gap + 'px') return;
+      var keep = currentVisibleCard();
+      cyclesScroll.style.setProperty('--split-bottom', gap + 'px');
+      if(keep && cyclesScroll.classList.contains('split')){ var sb = cyclesScroll.style.scrollBehavior; cyclesScroll.style.scrollBehavior = 'auto'; keep.scrollIntoView({ block:'start' }); cyclesScroll.style.scrollBehavior = sb; }
+    }catch(e){}
+  }
+  window.addEventListener('resize', fitSplit);
+  window.addEventListener('orientationchange', function(){ setTimeout(fitSplit, 250); });
+  try{ var cEl = document.querySelector('.stage .controls'); if(cEl && window.ResizeObserver) new ResizeObserver(fitSplit).observe(cEl); }catch(e){}
+  setTimeout(fitSplit, 300);
   function pinchStep(inward){
     var on = cyclesScroll.classList.contains('agenda'), sp = cyclesScroll.classList.contains('split');
     var keep = currentVisibleCard();
@@ -4586,6 +4605,8 @@
   // v106: the half-and-half view is the default start view
   setAgenda(false, null);
   setSplit(true);
+  // v107: start at the first timer (scroll-snap can otherwise land on the last one)
+  (function top0(){ var sb = cyclesScroll.style.scrollBehavior; cyclesScroll.style.scrollBehavior = 'auto'; cyclesScroll.scrollTop = 0; setTimeout(function(){ cyclesScroll.scrollTop = 0; cyclesScroll.style.scrollBehavior = sb; }, 500); })();
   if(landMQ){
     var onLand = function(){
       if(landMQ.matches){
