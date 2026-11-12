@@ -2550,7 +2550,7 @@
     }
   }
   // v108: the finish message is picked at random from a pool of funny, gender-neutral cheers.
-  var DONE_MSGS = ['מפלצת!','חיה!','מכונה!','פצצה!','רקטה!','טורנדו!','אגדה!','דינמיט!','בום!','איזה כוח!','יאללה אש!','שוברים את המשחק!','אחלה של טיגריס!','כוח על!','על הכיפק!','וואו, איזה אימון!','קורעים את הרצפה!','זה היה מטורף!'];
+  var DONE_MSGS = ['MONSTER!','BEAST!','MACHINE!','BOMB!','ROCKET!','TORNADO!','LEGEND!','DYNAMITE!','BOOM!','WHAT POWER!','LET\'S GO, FIRE!','SUPERPOWER!','WOW, WHAT A WORKOUT!','THAT WAS INSANE!','KNOCKOUT!','UNSTOPPABLE!','BEAST MODE!','CHAMPION!','OSS!','FLOATED LIKE A BUTTERFLY, STUNG LIKE A BEE!','YOU ARE THE GREATEST!','I AM THE GREATEST!','RUMBLE, YOUNG MAN, RUMBLE!','THE CHAMP IS HERE!','FLAWLESS VICTORY!','ABSOLUTE UNIT!'];
   var doneMsg = '';
   function pickDoneMsg(){ doneMsg = DONE_MSGS[Math.floor(Math.random() * DONE_MSGS.length)]; return doneMsg; }
   function updateRoundsDisplay(step){
@@ -4388,7 +4388,17 @@
     document.getElementById('sbTime').textContent = (activeHalf ? '' : t);
   }).observe(timeDisplay, { childList:true, characterData:true, subtree:true });
   new MutationObserver(function(){
-    document.getElementById('sbText').textContent = roundsDisplay.textContent || '';
+    var sbT = document.getElementById('sbText'), sbS = document.getElementById('sbStatus');
+    sbT.textContent = roundsDisplay.textContent || '';
+    sbT.dir = /[\u0590-\u05FF]/.test(sbT.textContent) ? '' : 'ltr';
+    // v110: long finish cheers shrink to fit on one line
+    try{
+      sbT.style.whiteSpace = 'nowrap'; sbS.style.fontSize = '';
+      if(!sbS.hidden && sbS.clientWidth > 0){
+        var fs = parseFloat(getComputedStyle(sbS).fontSize);
+        while(sbT.getBoundingClientRect().width > sbS.clientWidth - 24 && fs > 12){ fs -= 1; sbS.style.fontSize = fs + 'px'; }
+      }
+    }catch(e){}
   }).observe(roundsDisplay, { childList:true, characterData:true, subtree:true });
 
   function deleteInterval(id){
