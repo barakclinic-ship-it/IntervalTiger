@@ -2014,7 +2014,7 @@
 
     <div class="ready-overlay" id="readyOverlay" hidden>
       <div class="ready-word">READY</div>
-      <div class="ready-num" id="readyNum">5</div>
+      <div class="ready-num" id="readyNum">3</div>
       <div class="ready-hint">הקש לביטול</div>
     </div>
 
@@ -2544,12 +2544,16 @@
       runCounter.hidden = true;
     }
   }
+  // v108: the finish message is picked at random from a pool of funny, gender-neutral cheers.
+  var DONE_MSGS = ['מפלצת!','חיה!','מכונה!','פצצה!','רקטה!','טורנדו!','אגדה!','דינמיט!','בום!','איזה כוח!','יאללה אש!','שוברים את המשחק!','אחלה של טיגריס!','כוח על!','על הכיפק!','וואו, איזה אימון!','קורעים את הרצפה!','זה היה מטורף!'];
+  var doneMsg = '';
+  function pickDoneMsg(){ doneMsg = DONE_MSGS[Math.floor(Math.random() * DONE_MSGS.length)]; return doneMsg; }
   function updateRoundsDisplay(step){
     if(step.phase === 'idle'){
       var ivCount = currentPreset.intervals.length;
       roundsDisplay.textContent = currentPreset.name + ' · ' + currentPreset.sets + ' סטים · ' + ivCount + ' אינטרוולים';
     } else if(step.phase === 'done'){
-      roundsDisplay.textContent = 'כל הכבוד!';
+      roundsDisplay.textContent = doneMsg || pickDoneMsg();
     } else if(step.phase === '__setrest__'){
       roundsDisplay.textContent = 'לפני סט ' + (step.set+1) + '/' + step.sets;
     } else if(step.reps != null){
@@ -2630,7 +2634,7 @@
     var m = comp(c);
     if(!synthBus){
       synthBus = c.createGain();
-      synthBus.gain.value = 5.4; // v102: built-in ring sounds x3
+      synthBus.gain.value = 7.5; // v108: built-in ring sounds a bit louder (was 5.4)
       var ws = c.createWaveShaper();
       var n = 2048, curve = new Float32Array(n);
       for(var i = 0; i < n; i++){ var x = i * 2 / (n - 1) - 1; curve[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); }
@@ -3188,7 +3192,7 @@
     setRingColor({ phase:'done' });
     setRingFraction(1);
     timeDisplay.textContent = '00:00';
-    roundsDisplay.textContent = 'כל הכבוד!';
+    roundsDisplay.textContent = pickDoneMsg();
     runCounter.hidden = true;
     cuePhaseStart('done');
     vibrate([80,60,80,60,120]);
@@ -3263,7 +3267,7 @@
   function beginReady(){
     if(readyTimer) return;
     requestWakeLock();
-    var n = 5;
+    var n = 3; // v108: READY counts 3..1
     readyNum.textContent = String(n);
     readyOverlay.hidden = false;
     readyTimer = setInterval(function(){
