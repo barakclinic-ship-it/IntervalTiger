@@ -2006,7 +2006,8 @@
     .nb-col{ display:none; }
     .clock-panel.noted .nb-col{ display:flex; position:absolute; right:6px; top:158px; bottom:6px; width:44px; flex-direction:column; align-items:center; justify-content:space-evenly; z-index:5; }
     .nb-col .nb-ib{ width:40px; height:40px; }
-    .nb-col .nb-count{ color:#202124; font-size:13px; opacity:.8; }
+    .nb-pg{ display:flex; align-items:center; justify-content:center; direction:ltr; gap:8px; }
+    .nb-pg .nb-count{ font-size:15px; opacity:.8; color:#202124; }
     .nb-ib{ width:34px; height:34px; border:none; background:transparent; color:#202124; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer; padding:0; flex-shrink:0; }
     .nb-ib:active{ background:rgba(0,0,0,.16); }
     .nb-count{ font-size:12px; opacity:.7; padding:0 2px; }
@@ -5197,12 +5198,13 @@ if ('serviceWorker' in navigator) {
       back.innerHTML = '';
       col.innerHTML = '';
       if(n && data.notes.length > 1){
-        var idx = data.notes.indexOf(n);
-        var pv = el('button', 'nb-ib', I.up); pv.type = 'button'; pv.setAttribute('aria-label', 'פתק קודם');
+        var idx = data.notes.indexOf(n), pg = el('div', 'nb-pg');
+        var pv = el('button', 'nb-ib', I.next); pv.type = 'button'; pv.setAttribute('aria-label', 'פתק קודם');
         pv.addEventListener('click', function(){ data.active = data.notes[(idx - 1 + data.notes.length) % data.notes.length].id; save(); renderBack(); });
-        var nx = el('button', 'nb-ib', I.down); nx.type = 'button'; nx.setAttribute('aria-label', 'פתק הבא');
+        var nx = el('button', 'nb-ib', I.prev); nx.type = 'button'; nx.setAttribute('aria-label', 'פתק הבא');
         nx.addEventListener('click', function(){ data.active = data.notes[(idx + 1) % data.notes.length].id; save(); renderBack(); });
-        col.appendChild(pv); col.appendChild(el('span', 'nb-count', (idx + 1) + '/' + data.notes.length)); col.appendChild(nx);
+        pg.appendChild(pv); pg.appendChild(el('span', 'nb-count', (idx + 1) + '/' + data.notes.length)); pg.appendChild(nx);
+        back.appendChild(pg);
       }
       if(n){
         var cb = el('button', 'nb-ib', I.palette); cb.type = 'button'; cb.setAttribute('aria-label', 'צבע');
