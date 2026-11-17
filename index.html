@@ -2004,7 +2004,7 @@
     .clock-front, .notes-back{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; }
     .notes-back{ transform: rotateY(180deg); align-items:stretch; justify-content:flex-start; background:transparent; color:#202124; font-family:'Inter',system-ui,sans-serif; line-height:1.3; padding:4px 2px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
     .nb-bar{ display:flex; align-items:center; flex-shrink:0; position:relative; min-height:34px; }
-    .nb-icons{ display:flex; align-items:center; }
+    .nb-icons{ display:flex; align-items:center; margin-inline-end:-5px; }
     .nb-pg{ position:absolute; left:50%; top:0; transform:translateX(-50%); display:flex; align-items:center; direction:ltr; }
     .nb-ib{ width:34px; height:34px; border:none; background:transparent; color:#202124; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer; padding:0; flex-shrink:0; }
     .nb-ib:active{ background:rgba(0,0,0,.16); }
@@ -5151,7 +5151,7 @@ if ('serviceWorker' in navigator) {
         if(data.active === note.id) data.active = data.notes.length ? data.notes[0].id : null;
         save(); view = 'list'; renderOv();
       });
-      top.appendChild(bk); top.appendChild(el('div', 'sp')); top.appendChild(pin); top.appendChild(col); top.appendChild(del);
+      top.appendChild(bk); top.appendChild(pin); top.appendChild(col); top.appendChild(del);
       ov.appendChild(top);
       if(swOpen){
         var sw = el('div', 'nov-sw');
