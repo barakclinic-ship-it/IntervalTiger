@@ -1966,20 +1966,20 @@
   .nov-ib.on{ background:rgba(0,0,0,.16); }
   .nov-ib.danger{ color:#b3261e; background:rgba(179,38,30,.14); }
   .nov-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 16px 130px; }
-  .nov-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
-  .nov-card{ position:relative; border-radius:14px; padding:12px; min-height:92px; color:#202124; cursor:pointer; overflow:hidden; }
-  .nov-card .t{ font-weight:700; font-size:15px; margin-bottom:4px; padding-inline-end:34px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .nov-card .i{ font-size:13px; opacity:.85; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nov-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
+  .nov-card{ position:relative; border-radius:16px; padding:16px; min-height:150px; color:#202124; cursor:pointer; overflow:hidden; }
+  .nov-card .t{ font-weight:700; font-size:21px; margin-bottom:8px; padding-inline-end:40px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nov-card .i{ font-size:17px; opacity:.85; line-height:1.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .nov-card .i.d{ text-decoration:line-through; opacity:.5; }
-  .nov-card .pin{ position:absolute; top:6px; inset-inline-end:6px; width:32px; height:32px; border-radius:50%; border:none; background:rgba(0,0,0,.1); color:#202124; display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer; }
+  .nov-card .pin{ position:absolute; top:8px; inset-inline-end:8px; width:38px; height:38px; border-radius:50%; border:none; background:rgba(0,0,0,.1); color:#202124; display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer; }
   .nov-card .pin.on{ background:#202124; color:#fff; }
   .nov-empty{ text-align:center; opacity:.6; padding:60px 20px; font-size:16px; }
   .nov-fab{ position:fixed; bottom:calc(22px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); width:76px; height:76px; border-radius:50%; border:3px solid currentColor; background:rgba(128,128,128,.12); color:inherit; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; z-index:2; }
   .nov-fab:active{ background:rgba(128,128,128,.3); }
   .nov-fab svg{ width:38px; height:38px; }
-  .nov-title{ width:100%; box-sizing:border-box; font:inherit; font-size:24px; font-weight:700; background:transparent; border:none; outline:none; color:inherit; padding:6px 2px 10px; }
-  .nov-row{ display:flex; align-items:center; gap:10px; min-height:46px; }
-  .nov-row input[type=text]{ flex:1; min-width:0; font:inherit; font-size:18px; color:inherit; background:transparent; border:none; outline:none; padding:9px 0; }
+  .nov-title{ width:100%; box-sizing:border-box; font:inherit; font-size:28px; font-weight:700; background:transparent; border:none; outline:none; color:inherit; padding:6px 2px 10px; }
+  .nov-row{ display:flex; align-items:center; gap:12px; min-height:54px; }
+  .nov-row input[type=text]{ flex:1; min-width:0; font:inherit; font-size:22px; color:inherit; background:transparent; border:none; outline:none; padding:10px 0; }
   .nov-row.done input[type=text]{ text-decoration:line-through; opacity:.5; }
   .nov-box{ flex:0 0 26px; width:26px; height:26px; border:2.5px solid #5f6368; border-radius:7px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800; cursor:pointer; line-height:1; }
   .nov-row.done .nov-box{ background:#5f6368; color:#fff; }
@@ -1988,6 +1988,8 @@
   .nov-sw button{ width:34px; height:34px; border-radius:50%; border:2px solid rgba(0,0,0,.22); padding:0; cursor:pointer; }
   .nov-sw button.on{ border:3px solid #202124; }
   @media (orientation: landscape) and (max-height: 620px){
+    .notes-ov.list .nov-fab{ display:none; }
+    .nov-grid{ grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
     .nov-fab{ width:60px; height:60px; bottom:12px; }
     .nov-fab svg{ width:30px; height:30px; }
     .nov-title{ font-size:20px; padding:2px 2px 6px; }
@@ -2006,9 +2008,9 @@
     .nb-ib{ width:34px; height:34px; border:none; background:transparent; color:#202124; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer; padding:0; flex-shrink:0; }
     .nb-ib:active{ background:rgba(0,0,0,.16); }
     .nb-count{ font-size:12px; opacity:.7; padding:0 2px; }
-    .nb-title{ font-size:18px; font-weight:700; padding:2px 6px 6px; }
-    .nb-row{ display:flex; align-items:center; gap:8px; min-height:28px; font-size:15px; padding:1px 6px; cursor:pointer; }
-    .nb-row .nb-box{ flex:0 0 18px; width:18px; height:18px; border:2px solid #5f6368; border-radius:5px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; line-height:1; }
+    .nb-title{ font-size:23px; font-weight:700; padding:4px 6px 8px; }
+    .nb-row{ display:flex; align-items:center; gap:10px; min-height:36px; font-size:19px; padding:2px 6px; cursor:pointer; }
+    .nb-row .nb-box{ flex:0 0 24px; width:24px; height:24px; border:2px solid #5f6368; border-radius:5px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; line-height:1; }
     .nb-row.done .nb-box{ background:#5f6368; color:#fff; }
     .nb-row.done .tx{ text-decoration:line-through; opacity:.5; }
     .nb-empty{ margin:auto; text-align:center; font-size:14px; opacity:.75; padding:10px; }
@@ -5094,7 +5096,9 @@ if ('serviceWorker' in navigator) {
       if(!byId(data.active)) data.active = data.notes.length ? data.notes[0].id : null;
       if(changed) save();
     }
-    function closeNotes(){ pruneBlank(); ov.hidden = true; renderBack(); }
+    var rotBtn = document.getElementById('rotateBtn'), rotatedForEdit = false;
+    function isLand(){ return window.matchMedia('(orientation: landscape)').matches; }
+    function closeNotes(){ pruneBlank(); ov.hidden = true; renderBack(); if(rotatedForEdit){ rotatedForEdit = false; if(rotBtn && !isLand()) rotBtn.click(); } }
     function renderOv(focus){ if(view === 'edit' && byId(editId)) renderEdit(focus); else { view = 'list'; renderList(); } }
     function renderList(){
       ov.className = 'notes-ov list'; ov.style.background = '';
@@ -5113,7 +5117,10 @@ if ('serviceWorker' in navigator) {
         var pin = el('button', 'pin' + (data.active === n.id ? ' on' : ''), I.pin); pin.type = 'button'; pin.setAttribute('aria-label', 'הצג בשעון'); pin.title = 'הצג בשעון (במסך לרוחב)';
         pin.addEventListener('click', function(e){ e.stopPropagation(); data.active = n.id; save(); renderList(); });
         c.appendChild(pin);
-        c.addEventListener('click', function(){ view = 'edit'; editId = n.id; swOpen = false; delArmed = false; renderOv(); });
+        c.addEventListener('click', function(){
+          if(isLand()){ data.active = n.id; save(); closeNotes(); return; }  // landscape: just pick the note, no editing
+          view = 'edit'; editId = n.id; swOpen = false; delArmed = false; renderOv();
+        });
         grid.appendChild(c);
       });
       body.appendChild(grid); ov.appendChild(body);
@@ -5201,7 +5208,12 @@ if ('serviceWorker' in navigator) {
         bar.appendChild(cb);
       }
       var eb = el('button', 'nb-ib', I.pencil); eb.type = 'button'; eb.setAttribute('aria-label', 'עריכה');
-      eb.addEventListener('click', function(){ openNotes(n ? n.id : null); });
+      eb.addEventListener('click', function(){
+        var id = n ? n.id : null;
+        // editing is done in portrait (the keyboard would cover everything in landscape)
+        if(rotBtn && !rotBtn.hidden && isLand()){ rotatedForEdit = true; rotBtn.click(); setTimeout(function(){ openNotes(id); }, 700); }
+        else openNotes(id);
+      });
       bar.appendChild(eb);
       back.appendChild(bar);
       if(!n){ back.appendChild(el('div', 'nb-empty', 'אין פתק להצגה.<br>לחץ על העיפרון ליצירה או לבחירת פתק.')); return; }
