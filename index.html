@@ -1955,6 +1955,7 @@
   /* v113: notes - Keep-style notes (portrait editor, wide-landscape flip card) */
   .clock-flip{ display:contents; }
   .notes-back{ display:none; }
+  .nb-tool{ display:none !important; }
   .notes-ov{ position:fixed; inset:0; z-index:150; display:flex; flex-direction:column; background:#121212; color:#fff; font-family:'Inter',system-ui,sans-serif; }
   .notes-ov[hidden]{ display:none; }
   .notes-ov:not(.list){ color:#202124; }
@@ -2003,9 +2004,9 @@
     .clock-flip.flipped{ transform: rotateY(180deg); }
     .clock-front, .notes-back{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; }
     .notes-back{ transform: rotateY(180deg); align-items:stretch; justify-content:flex-start; background:transparent; color:#202124; font-family:'Inter',system-ui,sans-serif; line-height:1.3; padding:4px 2px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-    .nb-col{ display:none; }
-    .clock-panel.noted .nb-col{ display:flex; position:absolute; right:6px; top:158px; bottom:6px; width:44px; flex-direction:column; align-items:center; justify-content:space-evenly; z-index:5; }
-    .nb-col .nb-ib{ width:40px; height:40px; }
+    header{ bottom:4px !important; }
+    header .brand{ flex:1; justify-content:space-evenly !important; }
+    body.notes-open .nb-tool{ display:flex !important; }
     .nb-pg{ display:flex; align-items:center; justify-content:center; direction:ltr; gap:8px; }
     .nb-pg .nb-count{ font-size:15px; opacity:.8; color:#202124; }
     .nb-ib{ width:34px; height:34px; border:none; background:transparent; color:#202124; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer; padding:0; flex-shrink:0; }
@@ -5191,12 +5192,20 @@ if ('serviceWorker' in navigator) {
     noteBtn.addEventListener('click', function(){ openNotes(null); });
 
     // ----- the back face of the clock (wide landscape): read-only note, tick items, switch note, color, edit -----
-    var col = document.createElement('div'); col.className = 'nb-col'; panel.appendChild(col);
+    // color + edit buttons live in the header's icon column (shown only while the note is flipped open), so every icon is evenly spread on the right edge
+    var acts = document.getElementById('rotateBtn') ? document.getElementById('rotateBtn').parentNode : null;
+    function mkTool(id, label, svg, fn){ var b = el('button', 'header-icon nb-tool', svg); b.id = id; b.type = 'button'; b.setAttribute('aria-label', label); b.title = label; b.addEventListener('click', fn); if(acts) acts.appendChild(b); return b; }
+    mkTool('nbColorBtn', 'צבע', I.palette, function(){ var n = activeNote(); if(!n) return; var i = COLORS.indexOf(n.color); n.color = COLORS[(i + 1) % COLORS.length]; save(); renderBack(); });
+    mkTool('nbEditBtn', 'עריכה', I.pencil, function(){
+      var n = activeNote(), id = n ? n.id : null;
+      // editing is done in portrait (the keyboard would cover everything in landscape)
+      if(rotBtn && !rotBtn.hidden && isLand()){ rotatedForEdit = true; rotBtn.click(); setTimeout(function(){ openNotes(id); }, 700); }
+      else openNotes(id);
+    });
     function renderBack(){
       var n = activeNote();
       panel.style.setProperty('--note-bg', n ? n.color : COLORS[0]);
       back.innerHTML = '';
-      col.innerHTML = '';
       if(n && data.notes.length > 1){
         var idx = data.notes.indexOf(n), pg = el('div', 'nb-pg');
         var pv = el('button', 'nb-ib', I.next); pv.type = 'button'; pv.setAttribute('aria-label', 'פתק קודם');
@@ -5206,19 +5215,6 @@ if ('serviceWorker' in navigator) {
         pg.appendChild(pv); pg.appendChild(el('span', 'nb-count', (idx + 1) + '/' + data.notes.length)); pg.appendChild(nx);
         back.appendChild(pg);
       }
-      if(n){
-        var cb = el('button', 'nb-ib', I.palette); cb.type = 'button'; cb.setAttribute('aria-label', 'צבע');
-        cb.addEventListener('click', function(){ var i = COLORS.indexOf(n.color); n.color = COLORS[(i + 1) % COLORS.length]; save(); renderBack(); });
-        col.appendChild(cb);
-      }
-      var eb = el('button', 'nb-ib', I.pencil); eb.type = 'button'; eb.setAttribute('aria-label', 'עריכה');
-      eb.addEventListener('click', function(){
-        var id = n ? n.id : null;
-        // editing is done in portrait (the keyboard would cover everything in landscape)
-        if(rotBtn && !rotBtn.hidden && isLand()){ rotatedForEdit = true; rotBtn.click(); setTimeout(function(){ openNotes(id); }, 700); }
-        else openNotes(id);
-      });
-      col.appendChild(eb);
       if(!n){ back.appendChild(el('div', 'nb-empty', 'אין פתק להצגה.<br>לחץ על העיפרון ליצירה או לבחירת פתק.')); return; }
       back.appendChild(el('div', 'nb-title')).textContent = n.title || '';
       (n.items || []).forEach(function(it){
