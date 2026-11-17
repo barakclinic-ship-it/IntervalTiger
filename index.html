@@ -5191,8 +5191,6 @@ if ('serviceWorker' in navigator) {
       panel.style.setProperty('--note-bg', n ? n.color : COLORS[0]);
       back.innerHTML = '';
       var bar = el('div', 'nb-bar');
-      var fb = el('button', 'nb-ib', I.flipBack); fb.type = 'button'; fb.setAttribute('aria-label', 'חזרה לשעון'); fb.addEventListener('click', function(){ setOpen(false); });
-      bar.appendChild(fb);
       if(n && data.notes.length > 1){
         var idx = data.notes.indexOf(n);
         var pv = el('button', 'nb-ib', I.prev); pv.type = 'button'; pv.setAttribute('aria-label', 'פתק קודם');
