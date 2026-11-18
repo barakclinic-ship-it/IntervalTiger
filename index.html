@@ -5080,6 +5080,12 @@ if ('serviceWorker' in navigator) {
     function save(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
     function byId(id){ for(var i = 0; i < data.notes.length; i++) if(data.notes[i].id === id) return data.notes[i]; return null; }
     function activeNote(){ var n = byId(data.active); if(!n && data.notes.length){ n = data.notes[0]; data.active = n.id; } return n || null; }
+    // a note without a title is named by the date and time it was created
+    function noteName(n){
+      if((n.title || '').trim()) return n.title;
+      var ts = n.created || parseInt(String(n.id || '').slice(1, 9), 36) || Date.now(), d = new Date(ts);
+      return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+    }
     function isBlank(n){ return !(n.title || '').trim() && !(n.items || []).some(function(i){ return (i.t || '').trim(); }); }
     function ic(p, sz){ return '<svg viewBox="0 0 24 24" width="' + (sz || 22) + '" height="' + (sz || 22) + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; }
     var I = {
@@ -5126,7 +5132,7 @@ if ('serviceWorker' in navigator) {
       var grid = el('div', 'nov-grid');
       data.notes.forEach(function(n){
         var c = el('div', 'nov-card'); c.style.background = n.color;
-        c.appendChild(el('div', 't')).textContent = n.title || 'ללא כותרת';
+        c.appendChild(el('div', 't')).textContent = noteName(n);
         (n.items || []).slice(0, 4).forEach(function(it){ var r = el('div', 'i' + (it.d ? ' d' : '')); r.textContent = it.t || ''; c.appendChild(r); });
         var pin = el('button', 'pin' + (data.active === n.id ? ' on' : ''), I.pin); pin.type = 'button'; pin.setAttribute('aria-label', 'הצג בשעון'); pin.title = 'הצג בשעון (במסך לרוחב)';
         pin.addEventListener('click', function(e){ e.stopPropagation(); data.active = n.id; save(); renderList(); });
@@ -5140,7 +5146,7 @@ if ('serviceWorker' in navigator) {
       body.appendChild(grid); ov.appendChild(body);
       var fab = el('button', 'nov-fab', I.plus); fab.type = 'button'; fab.setAttribute('aria-label', 'פתק חדש');
       fab.addEventListener('click', function(){
-        var n = { id:nid(), title:'', color:COLORS[0], items:[{ t:'', d:false }] };
+        var n = { id:nid(), title:'', created:Date.now(), color:COLORS[0], items:[{ t:'', d:false }] };
         data.notes.unshift(n); if(!data.active || data.notes.length === 1) data.active = n.id; save();
         view = 'edit'; editId = n.id; swOpen = false; delArmed = false; renderOv('title');
       });
@@ -5173,7 +5179,7 @@ if ('serviceWorker' in navigator) {
         ov.appendChild(sw);
       }
       var body = el('div', 'nov-body edit');
-      var t = el('input', 'nov-title'); t.type = 'text'; t.placeholder = 'כותרת'; t.value = note.title || ''; t.setAttribute('dir', 'rtl');
+      var t = el('input', 'nov-title'); t.type = 'text'; t.placeholder = noteName(note); t.value = note.title || ''; t.setAttribute('dir', 'rtl');
       t.addEventListener('input', function(){ note.title = t.value; save(); });
       body.appendChild(t);
       var inputs = [];
@@ -5246,7 +5252,7 @@ if ('serviceWorker' in navigator) {
         back.appendChild(pg);
       }
       if(!n){ back.appendChild(el('div', 'nb-empty', 'אין פתק להצגה.<br>לחץ על העיפרון ליצירה או לבחירת פתק.')); return; }
-      back.appendChild(el('div', 'nb-title')).textContent = n.title || '';
+      back.appendChild(el('div', 'nb-title')).textContent = noteName(n);
       (n.items || []).forEach(function(it){
         if(!(it.t || '').trim()) return;
         var r = el('div', 'nb-row' + (it.d ? ' done' : ''));
