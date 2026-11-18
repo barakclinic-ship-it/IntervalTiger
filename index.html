@@ -1988,6 +1988,12 @@
   .nov-sw{ display:flex; gap:10px; padding:2px 14px 10px; flex-wrap:wrap; flex-shrink:0; }
   .nov-sw button{ width:34px; height:34px; border-radius:50%; border:2px solid rgba(0,0,0,.22); padding:0; cursor:pointer; }
   .nov-sw button.on{ border:3px solid #202124; }
+  .nov-body.edit{ padding-bottom:40px; }
+  .nov-addrow{ display:flex; align-items:center; justify-content:center; width:64px; height:64px; margin:14px auto 0; border-radius:50%; border:3px solid currentColor; background:rgba(128,128,128,.12); color:inherit; padding:0; cursor:pointer; }
+  .nov-addrow:active{ background:rgba(128,128,128,.3); }
+  .nov-addrow svg{ width:34px; height:34px; }
+  .nov-grip{ width:36px; height:40px; display:flex; align-items:center; justify-content:center; color:#5f6368; touch-action:none; cursor:grab; flex-shrink:0; }
+  .nov-row.drag{ background:rgba(0,0,0,.1); border-radius:10px; }
   @media (orientation: landscape) and (max-height: 620px){
     .notes-ov.list .nov-fab{ display:none; }
     .nov-grid{ grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
@@ -2005,6 +2011,7 @@
     .clock-front, .notes-back{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; }
     .notes-back{ transform: rotateY(180deg); align-items:stretch; justify-content:flex-start; background:transparent; color:#202124; font-family:'Inter',system-ui,sans-serif; line-height:1.3; padding:4px 2px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
     header{ bottom:4px !important; }
+    #shareBtn{ display:none !important; }
     header .brand{ flex:1; justify-content:space-evenly !important; }
     body.notes-open .nb-tool{ display:flex !important; }
     .nb-pg{ display:flex; align-items:center; justify-content:center; direction:ltr; gap:8px; }
@@ -5088,6 +5095,7 @@ if ('serviceWorker' in navigator) {
       next: ic('<path d="M15 6l-6 6 6 6"/>', 20),
       up: ic('<path d="M6 15l6-6 6 6"/>', 24),
       down: ic('<path d="M6 9l6 6 6-6"/>', 24),
+      grip: ic('<path d="M5 9h14M5 15h14"/>', 22),
       flipBack: ic('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', 19)
     };
     noteBtn.innerHTML = I.note;
@@ -5164,7 +5172,7 @@ if ('serviceWorker' in navigator) {
           b.addEventListener('click', function(){ note.color = c; save(); renderEdit(); }); sw.appendChild(b); });
         ov.appendChild(sw);
       }
-      var body = el('div', 'nov-body');
+      var body = el('div', 'nov-body edit');
       var t = el('input', 'nov-title'); t.type = 'text'; t.placeholder = 'כותרת'; t.value = note.title || ''; t.setAttribute('dir', 'rtl');
       t.addEventListener('input', function(){ note.title = t.value; save(); });
       body.appendChild(t);
@@ -5180,12 +5188,34 @@ if ('serviceWorker' in navigator) {
         });
         var x = el('button', 'nov-x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'מחק שורה');
         x.addEventListener('click', function(){ note.items.splice(idx, 1); save(); renderEdit(); });
-        row.appendChild(box); row.appendChild(inp); row.appendChild(x); body.appendChild(row); inputs.push(inp);
+        row._it = it;
+        // drag handle: hold and move to change the row's position
+        var grip = el('div', 'nov-grip', I.grip); grip.setAttribute('aria-label', 'הזז שורה');
+        grip.addEventListener('pointerdown', function(e){
+          e.preventDefault(); row.classList.add('drag');
+          function mv(ev){
+            var y = ev.clientY, cur = [].slice.call(body.querySelectorAll('.nov-row'));
+            for(var k = 0; k < cur.length; k++){
+              var o = cur[k]; if(o === row) continue;
+              var r = o.getBoundingClientRect();
+              if(y > r.top && y < r.bottom){ if(o.compareDocumentPosition(row) & 4) body.insertBefore(row, o); else body.insertBefore(row, o.nextSibling); break; }
+            }
+            var br = body.getBoundingClientRect();
+            if(y < br.top + 50) body.scrollTop -= 12; else if(y > br.bottom - 50) body.scrollTop += 12;
+          }
+          function up(){
+            document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+            note.items = [].map.call(body.querySelectorAll('.nov-row'), function(r){ return r._it; }); save(); renderEdit();
+          }
+          document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+        });
+        row.appendChild(box); row.appendChild(inp); row.appendChild(x); row.appendChild(grip); body.appendChild(row); inputs.push(inp);
       });
+      // the big + sits right after the list
+      var add = el('button', 'nov-addrow', I.plus); add.type = 'button'; add.setAttribute('aria-label', 'הוסף שורה');
+      add.addEventListener('click', function(){ note.items.push({ t:'', d:false }); save(); renderEdit(note.items.length - 1); });
+      body.appendChild(add);
       ov.appendChild(body);
-      var fab = el('button', 'nov-fab', I.plus); fab.type = 'button'; fab.setAttribute('aria-label', 'הוסף שורה');
-      fab.addEventListener('click', function(){ note.items.push({ t:'', d:false }); save(); renderEdit(note.items.length - 1); });
-      ov.appendChild(fab);
       if(focus === 'title') t.focus();
       else if(typeof focus === 'number' && inputs[focus]){ inputs[focus].focus(); var l = inputs[focus].value.length; try{ inputs[focus].setSelectionRange(l, l); }catch(e){} if(focus >= inputs.length - 1){ try{ body.scrollTop = body.scrollHeight; }catch(e){} } }
     }
