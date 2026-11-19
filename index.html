@@ -1956,6 +1956,11 @@
   .clock-flip{ display:contents; }
   .notes-back{ display:none; }
   #newBtn.armed{ background:#e5484d; border-radius:50%; color:#fff !important; }
+  /* v125: portrait - the top row of icons is spread evenly across the width */
+  @media (orientation: portrait){
+    header .brand{ justify-content:space-evenly !important; }
+    header .brand .logo{ margin-inline-end:0 !important; }
+  }
   .nb-tool{ display:none !important; }
   .notes-ov{ position:fixed; inset:0; z-index:150; display:flex; flex-direction:column; background:#121212; color:#fff; font-family:'Inter',system-ui,sans-serif; }
   .notes-ov[hidden]{ display:none; }
