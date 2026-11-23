@@ -2688,7 +2688,9 @@
   function ctx(){
     if(!actx){
       try{
-        actx = new (window.AudioContext || window.webkitAudioContext)();
+        // v130: 'playback' latency = bigger audio buffer, so cues stay clean (no crackle) when the page is in the background
+        try{ actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' }); }
+        catch(e1){ actx = new (window.AudioContext || window.webkitAudioContext)(); }
         var origOsc = actx.createOscillator.bind(actx);
         actx.createOscillator = function(){
           var o = origOsc();
