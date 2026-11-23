@@ -2239,7 +2239,7 @@
       durationSec: 30,
       reps: 10,
       color: nextIvColor(),
-      soundAssignment: 'builtin:beep3', // work sound: null (silent) | 'builtin:<id>' | <trackId number>
+      soundAssignment: 'builtin:beep2', // work sound (default: two beeps; rest default is three): null (silent) | 'builtin:<id>' | <trackId number>
       once: false,
       // Each block is work + rest. rest 0 = no rest phase.
       restSec: 0,
@@ -5009,7 +5009,7 @@
         name: 'אימון חדש', sets: 99, setRestSec: 0,
         intervals: [
           makeInterval({ name:'TIGER', durationSec:50, color:'#4fc38a', restSec:0 }),
-          makeInterval({ name:'מנוחה', durationSec:10, color:'#e5585b', restSec:0 })
+          makeInterval({ name:'מנוחה', durationSec:10, color:'#e5585b', restSec:0, soundAssignment:'builtin:beep3' })
         ]
       }));
     });
