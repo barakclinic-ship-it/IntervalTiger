@@ -2706,6 +2706,7 @@
   // loud (compression alone only protects against clipping — it doesn't
   // raise the average level, which is what actually cuts through music).
   var masterMakeup = null;
+  var outEl = null;
   function comp(c){
     if(!masterCompressor){
       // Chain: sources -> small gain -> gentle safety limiter -> destination.
@@ -2727,7 +2728,17 @@
       var ceil = c.createWaveShaper(), cn = 2048, cc = new Float32Array(cn);
       for(var ci = 0; ci < cn; ci++){ var cx = ci / (cn - 1) * 2 - 1; cc[ci] = Math.tanh(1.5 * cx) / Math.tanh(1.5); }
       ceil.curve = cc; try{ ceil.oversample = '4x'; }catch(e){}
-      masterMakeup.connect(masterCompressor).connect(ceil).connect(c.destination);
+      masterMakeup.connect(masterCompressor).connect(ceil);
+      // v131: send the mix through a media element instead of straight to the speakers. Android
+      // keeps media-element audio smooth when the app is in the background (the raw audio
+      // context there gets starved -> hoarse, choppy cues). Falls back to direct output.
+      try{
+        var msd = c.createMediaStreamDestination();
+        outEl = new Audio(); outEl.srcObject = msd.stream; outEl.setAttribute('playsinline', '');
+        ceil.connect(msd);
+        var pr = outEl.play();
+        if(pr && pr.catch){ pr.catch(function(){ try{ ceil.disconnect(); ceil.connect(c.destination); outEl = null; }catch(e){} }); }
+      }catch(e){ try{ ceil.disconnect(); }catch(_){} ceil.connect(c.destination); outEl = null; }
     }
     return masterMakeup;
   }
@@ -3372,6 +3383,7 @@
   function stopKeepAlive(){ try{ if(keepOsc){ keepOsc.stop(); keepOsc.disconnect(); } }catch(e){} keepOsc = null; }
   function wakeAudio(){
     try{ var c = ctx(); if(c && running && c.state !== 'running'){ c.resume(); } }catch(e){}
+    try{ if(running && outEl && outEl.paused){ outEl.play().catch(function(){}); } }catch(e){}
   }
   document.addEventListener('visibilitychange', wakeAudio);
   setInterval(wakeAudio, 2000);
