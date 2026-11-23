@@ -2226,7 +2226,7 @@
 
   // ---------- data model: presets, each with an arbitrary ordered list of
   // named, colored, independently-soundable intervals ----------
-  var IV_COLOR_ROTATION = ['#8fc3f0','#f59a9a','#9fe0c4','#fbd78a','#c3adee','#f2aacd','#96d6da','#f1be94'];
+  var IV_COLOR_ROTATION = ['#4fc38a','#e5585b','#8fc3f0','#9fe0c4','#fbd78a','#c3adee','#f2aacd','#96d6da','#f1be94'];
   var ivColorSeq = 0;
   function nextIvColor(){ return IV_COLOR_ROTATION[(ivColorSeq++) % IV_COLOR_ROTATION.length]; }
   function uid(prefix){ return (prefix||'iv') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
@@ -2243,7 +2243,7 @@
       once: false,
       // Each block is work + rest. rest 0 = no rest phase.
       restSec: 0,
-      restColor: '#f59a9a',
+      restColor: '#e5585b',
       restSound: 'builtin:beep3'
     }, opts);
   }
@@ -2266,7 +2266,7 @@
       sets: 99,
       setRestSec: 0,
       intervals: [
-        makeInterval({ name:'אינטרוול 1', durationSec:50, color:'#8fc3f0', restSec:10, restColor:'#f59a9a' })
+        makeInterval({ name:'אינטרוול 1', durationSec:50, color:'#4fc38a', restSec:10, restColor:'#e5585b' })
       ]
     });
   }
@@ -4476,6 +4476,23 @@
       try{ el.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){}
     }
   }
+  // v127: in a long workout the view can end up showing the continuation instead of the running block (a smooth scroll dropped while the
+  // screen was dimmed / in the background). Re-sync it: if the running block is mostly off screen, jump back to it.
+  var csEl = document.getElementById('cyclesScroll'), lastUserScroll = 0;
+  ['touchstart', 'wheel', 'pointerdown'].forEach(function(t){ csEl.addEventListener(t, function(){ lastUserScroll = Date.now(); }, { passive:true }); });
+  function resyncActive(){
+    if(!activeHalf || !ivListEl || !ivListEl.classList.contains('has-active')) return;
+    if(Date.now() - lastUserScroll < 6000 || csEl.classList.contains('agenda')) return;
+    var card = activeHalf.el.parentNode, cr = card.getBoundingClientRect(), sr = csEl.getBoundingClientRect();
+    var vis = Math.min(cr.bottom, sr.bottom) - Math.max(cr.top, sr.top);
+    if(vis < Math.min(cr.height, sr.height) * 0.6){
+      var sb = csEl.style.scrollBehavior; csEl.style.scrollBehavior = 'auto';
+      try{ card.scrollIntoView({ block:'start' }); }catch(e){}
+      csEl.style.scrollBehavior = sb;
+    }
+  }
+  setInterval(resyncActive, 1000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(resyncActive, 150); });
   // Mirror the (hidden) legacy countdown text into whichever half is live.
   new MutationObserver(function(){
     var t = timeDisplay.textContent || '';
@@ -4991,8 +5008,8 @@
       applyWorkout(makePreset({
         name: 'אימון חדש', sets: 99, setRestSec: 0,
         intervals: [
-          makeInterval({ name:'TIGER', durationSec:50, color:'#8fc3f0', restSec:0 }),
-          makeInterval({ name:'מנוחה', durationSec:10, color:'#f59a9a', restSec:0 })
+          makeInterval({ name:'TIGER', durationSec:50, color:'#4fc38a', restSec:0 }),
+          makeInterval({ name:'מנוחה', durationSec:10, color:'#e5585b', restSec:0 })
         ]
       }));
     });
