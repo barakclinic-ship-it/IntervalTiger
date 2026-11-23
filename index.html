@@ -3352,8 +3352,45 @@
     timeDisplay.textContent = fmtTime(remainingSec);
     var wholeSec = Math.ceil(remainingSec);
   }
-  function startTick(){ stopTick(); tickHandle = setInterval(tick, 100); }
-  function stopTick(){ if(tickHandle){ clearInterval(tickHandle); tickHandle = null; } }
+  // v129: keep cues audible when the app is in the background / another window is in front.
+  // 1) the tick runs in a Web Worker (page timers get throttled to ~1/sec or less when hidden),
+  // 2) a near-silent oscillator keeps the audio context alive so the browser doesn't suspend the tab,
+  // 3) the context is resumed whenever it drops to suspended or the page is shown/hidden.
+  var tickWorker = null, keepOsc = null;
+  function startKeepAlive(){
+    try{
+      var c = ctx(); if(!c || keepOsc) return;
+      if(c.state !== 'running'){ c.resume(); }
+      var o = c.createOscillator(), g = c.createGain();
+      g.gain.value = 0.0008; o.frequency.value = 40;
+      o.connect(g); g.connect(c.destination); o.start();
+      keepOsc = o;
+    }catch(e){}
+  }
+  function stopKeepAlive(){ try{ if(keepOsc){ keepOsc.stop(); keepOsc.disconnect(); } }catch(e){} keepOsc = null; }
+  function wakeAudio(){
+    try{ var c = ctx(); if(c && running && c.state !== 'running'){ c.resume(); } }catch(e){}
+  }
+  document.addEventListener('visibilitychange', wakeAudio);
+  setInterval(wakeAudio, 2000);
+  function startTick(){
+    stopTick();
+    startKeepAlive();
+    try{
+      var blob = new Blob(['setInterval(function(){postMessage(1)},100)'], {type:'application/javascript'});
+      var url = URL.createObjectURL(blob);
+      tickWorker = new Worker(url);
+      tickWorker._url = url;
+      tickWorker.onmessage = function(){ tick(); };
+    }catch(e){ tickWorker = null; }
+    // plain timer as a fallback/backup (tick is idempotent: it works from wall-clock time)
+    tickHandle = setInterval(tick, tickWorker ? 1000 : 100);
+  }
+  function stopTick(){
+    if(tickHandle){ clearInterval(tickHandle); tickHandle = null; }
+    if(tickWorker){ try{ tickWorker.terminate(); URL.revokeObjectURL(tickWorker._url); }catch(e){} tickWorker = null; }
+    stopKeepAlive();
+  }
 
   // Pressing start from idle first shows a black READY screen that counts
   // 5..1, then the workout starts with the first work sound.
